@@ -1,0 +1,66 @@
+$ApiV2Uri = "https://$($Env:Platform)-api.centrastage.net/api/v2/"
+
+function Assert-ApiKey {
+	return (Test-Path Env:RMMAPIKey)
+}
+
+function Get-AlertApiUri {
+    if ($Env:Target -eq "site") {
+        $AlertPath = [System.IO.Path]::Combine("/",$Env:SiteID,$AlertPath)
+    }
+    return [System.IO.Path]::Combine($ApiV2Uri,$Env:Target,$AlertPath)
+}
+
+function Get-ApiToken {
+    return @{Authorization = "Bearer $($Env:RMMAPIKey)"}
+}
+
+function Get-OpenAlerts ([string]$Uri, [string]$Header) {
+	try {
+        $alertResults = (
+            Invoke-WebRequest -Uri $Uri -Headers $Header | ConvertFrom-Json
+        ).alerts
+    } catch {
+        Write-Host "Error reading API" $_.InvocationInfo.PositionMessage
+        Write-Host $_
+    }
+    return $alertResults
+}
+
+function Resolve-OpenAlert ([string]$AlertUid, [string]$Header) {
+    $ResolvePath = "alert/$($AlertUid)/resolve"
+    $AlertUri = [System.IO.Path]::Combine($ApiV2Uri,$ResolvePath)
+
+    try {
+        Invoke-WebRequest -Uri $AlertUri -Method POST -Headers $header
+    } catch {
+        Write-Host "Error reading API" $_.InvocationInfo.PositionMessage
+        Write-Host $_
+    }
+}
+
+function Run-ResolveOpenAlertsProgram {
+    Write-Host "Searching API Key in System Variable..."
+    if (Assert-ApiKey) {
+        Write-Host "API Key found."
+        Write-Host "Reading Open Alerts..."
+        $openAlerts = Get-OpenAlerts -Uri (Get-AlertApiUri) -Header (Get-ApiToken)
+
+        if ($Env:Priority -ne 'All') {
+            $openAlerts = $openAlerts | Where {$_.Priority -eq $Env:Priority}
+        }
+
+        ForEach ($alert in $openAlerts) {
+            Write-Host "Resolving Alert: "$alert.alertUid
+            Resolve-OpenAlert -AlertUid $alert.alertUid -Header (Get-ApiToken)
+        }
+
+    } else {
+        Write-Host "API Key NOT found!"
+        Write-Host "Please run below command on device to save API Key on device before rerunning component..."
+        Write-Host "[Environment]::SetEnvironmentVariable('RMMAPIKey','enter-api-key-from-postman-here','Machine')"
+        Write-Host "APIv2 Doc: https://help.aem.autotask.net/en/Content/2SETUP/APIv2.htm"
+    }
+}
+
+Run-ResolveOpenAlertProgram
