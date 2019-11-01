@@ -20,15 +20,10 @@ function Get-ApiV2Uri {
 }
 
 function Get-AlertApiUri {
-													
-					   
     $alertPath = "/alerts/open"
     if ($Env:Target -eq "site") {
         $alertPath = "/$($Env:SiteID)$($alertPath)"
     }
-							 
-											   
-	 
     [string]$alertApiUri = "$(Get-ApiV2Uri)$($Env:Target)$($alertPath)"
     return $alertApiUri
 }
@@ -39,7 +34,7 @@ function Get-ApiHeader {
     return $header
 }
 
-function Query-RMMApi () {
+function Query-RMMApi {
     Param(
         [Parameter(Mandatory=$true)]
         [string]$Uri,
