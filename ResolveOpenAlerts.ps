@@ -15,24 +15,27 @@ function Get-RMMPlatform {
 
 function Get-ApiV2Uri {
     $platform = Get-RMMPlatform
-    $apiSubPath = "-api.centrastage.net/api/v2/"
-    [string]$apiUri = [System.IO.Path]::Combine("https://",$_platform,$apiSubPath)
+    [string]$apiUri = "https://$($platform)-api.centrastage.net/api/v2/"
     return $apiUri
 }
 
 function Get-AlertApiUri {
+													
+					   
     $alertPath = "/alerts/open"
     if ($Env:Target -eq "site") {
-        $alertPath = [System.IO.Path]::Combine("/",$Env:SiteID,$alertPath)
+        $alertPath = "/$($Env:SiteID)$($alertPath)"
     }
-    $apiV2Uri = Get-ApiV2Uri
-    [string]$alertApiUri = [System.IO.Path]::Combine($apiV2Uri,$Env:Target,$alertPath)
+							 
+											   
+	 
+    [string]$alertApiUri = "$(Get-ApiV2Uri)$($Env:Target)$($alertPath)"
     return $alertApiUri
 }
 
 function Get-ApiHeader {
-    $token = [System.IO.Path]::Combine("Bearer ",$Env:RMMAPIKey)
-    [hash]$header = @{Authorization = $token}
+    $token = "Bearer $($Env:RMMAPIKey)"
+    [hashtable]$header = @{Authorization = $token}
     return $header
 }
 
@@ -65,7 +68,7 @@ function Get-OpenAlerts ([string]$Uri) {
 function Resolve-OpenAlert ([string]$AlertUid) {
     $resolvePath = "alert/$($AlertUid)/resolve"
     $apiV2Uri = Get-ApiV2Uri
-    $alertUri = [System.IO.Path]::Combine($apiV2Uri,$resolvePath)
+    $alertUri = "$(Get-ApiV2Uri)$($resolvePath)"
 
     Query-RMMApi -Uri $alertUri -Method "POST"
 }
@@ -74,6 +77,14 @@ function Run-ResolveOpenAlertsProgram {
     Write-Host "=================================="
     Write-Host " Resolve Open Alerts via API v1.0"
     Write-Host "=================================="
+    Write-Host "Target: "$Env:Target
+	if ($Env:Target -eq "site") {
+		Write-Host "SiteID: $($Env:SiteID)"
+	}
+    Write-Host "Priority: "$Env:Priority
+										
+											
+					 
 
     Write-Host "Searching API Key in System Variable..."
     if(-not (Assert-ApiKey)) {
@@ -94,13 +105,19 @@ function Run-ResolveOpenAlertsProgram {
     }
     Write-Host "RMM Platform: "(Get-RMMPlatform)
 
-    Write-Host "Reading Open Alerts..."
-    $openAlerts = Get-OpenAlerts -Uri (Get-AlertApiUri)
+    $alertUri = Get-AlertApiUri
+    Write-Host "Reading Open Alerts from "$alertUri
+    $openAlerts = Get-OpenAlerts -Uri $alertUri
+    if (-not $openAlerts) {
+        Write-Host "No Open Alerts found!"
+        Write-Host "Exiting..."
+        return
+    }
 
     if ($Env:Priority -ne 'All') {
         $openAlerts = $openAlerts | Where {$_.Priority -eq $Env:Priority}
     }
-
+    
     ForEach ($alert in $openAlerts) {
         Write-Host "Resolving Alert: "$alert.alertUid
         Resolve-OpenAlert -AlertUid $alert.alertUid
