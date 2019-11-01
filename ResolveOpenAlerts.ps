@@ -71,9 +71,9 @@ function Resolve-OpenAlert ([string]$AlertUid) {
 }
 
 function Run-ResolveOpenAlertsProgram {
-    Write-Host "============================="
-    Write-Host " Resolve Open Alerts via API"
-    Write-Host "============================="
+    Write-Host "=================================="
+    Write-Host " Resolve Open Alerts via API v1.0"
+    Write-Host "=================================="
 
     Write-Host "Searching API Key in System Variable..."
     if(-not (Assert-ApiKey)) {
@@ -107,4 +107,4 @@ function Run-ResolveOpenAlertsProgram {
     }
 }
 
-Run-ResolveOpenAlertProgram
+Run-ResolveOpenAlertsProgram
