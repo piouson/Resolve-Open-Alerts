@@ -52,10 +52,10 @@ function Query-RMMApi () {
     }
 
     try {
-        $queryResults = Invoke-WebRequest -Uri $Uri -Headers (Get-ApiHeader) -Method $Method
+        $queryResults = Invoke-WebRequest -Uri $Uri -Headers (Get-ApiHeader) -Method $Method -UseBasicParsing
     } catch {
         Write-Host "Error reading API" $_.InvocationInfo.PositionMessage
-        Write-Host $_
+        Write-Error -Message $_ -ErrorAction Stop
     }
     return (ConvertFrom-Json $queryResults)
 }
@@ -74,6 +74,7 @@ function Resolve-OpenAlert ([string]$AlertUid) {
 }
 
 function Run-ResolveOpenAlertsProgram {
+    Write-Host ""
     Write-Host "=================================="
     Write-Host " Resolve Open Alerts via API v1.0"
     Write-Host "=================================="
@@ -82,9 +83,6 @@ function Run-ResolveOpenAlertsProgram {
 		Write-Host "SiteID: $($Env:SiteID)"
 	}
     Write-Host "Priority: "$Env:Priority
-										
-											
-					 
 
     Write-Host "Searching API Key in System Variable..."
     if(-not (Assert-ApiKey)) {
@@ -92,26 +90,23 @@ function Run-ResolveOpenAlertsProgram {
         Write-Host "Please save API Key on device with command below before rerunning component..."
         Write-Host "[Environment]::SetEnvironmentVariable('RMMAPIKey','api-key-from-postman-here','Machine')"
         Write-Host "RMM APIv2 Doc: https://help.aem.autotask.net/en/Content/2SETUP/APIv2.htm"
-        Write-Host "Exiting..."
-        return
+        Write-Error "Exiting..." -ErrorAction Stop
     }
     Write-Host "API Key found."
 
     Write-Host "Verifying RMM Platform..."
     if((-not (Assert-RMMPlatform)) -or ((Get-RMMPlatform).length -eq 0)) {
         Write-Host "Could not determine RMM Platform!"
-        Write-Host "Exiting..."
-        return
+        Write-Error "Exiting..." -ErrorAction Stop
     }
     Write-Host "RMM Platform: "(Get-RMMPlatform)
 
     $alertUri = Get-AlertApiUri
-    Write-Host "Reading Open Alerts from "$alertUri
+    Write-Host "Reading Open Alerts..."
     $openAlerts = Get-OpenAlerts -Uri $alertUri
     if (-not $openAlerts) {
         Write-Host "No Open Alerts found!"
-        Write-Host "Exiting..."
-        return
+        Write-Error "Exiting..." -ErrorAction Stop
     }
 
     if ($Env:Priority -ne 'All') {
