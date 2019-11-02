@@ -15,21 +15,21 @@ function Get-RMMPlatform {
 
 function Get-ApiV2Uri {
     $platform = Get-RMMPlatform
-    [string]$apiUri = "https://$($platform)-api.centrastage.net/api/v2/"
+    [string]$apiUri = "https://{0}-api.centrastage.net/api/v2/" -f $platform
     return $apiUri
 }
 
 function Get-AlertApiUri {
     $alertPath = "/alerts/open"
     if ($Env:Target -eq "site") {
-        $alertPath = "/$($Env:SiteID)$($alertPath)"
+        $alertPath = "/{0}{1}" -f $Env:SiteID, $alertPath
     }
-    [string]$alertApiUri = "$(Get-ApiV2Uri)$($Env:Target)$($alertPath)"
+    [string]$alertApiUri = "{0}{1}{2}" -f (Get-ApiV2Uri), $Env:Target, $alertPath
     return $alertApiUri
 }
 
 function Get-ApiHeader {
-    $token = "Bearer $($Env:RMMAPIKey)"
+    $token = "Bearer {0}" -f $Env:RMMAPIKey
     [hashtable]$header = @{Authorization = $token}
     return $header
 }
@@ -61,16 +61,15 @@ function Get-OpenAlerts ([string]$Uri) {
 }
 
 function Resolve-OpenAlert ([string]$AlertUid) {
-    $resolvePath = "alert/$($AlertUid)/resolve"
+    $resolvePath = "alert/{0}/resolve" -f $AlertUid
     $apiV2Uri = Get-ApiV2Uri
-    $alertUri = "$(Get-ApiV2Uri)$($resolvePath)"
+    $alertUri = "{0}{1}" -f (Get-ApiV2Uri), $resolvePath
 
     Query-RMMApi -Uri $alertUri -Method "POST"
 }
 
 function Run-ResolveOpenAlertsProgram {
-    Write-Host ""
-    Write-Host "=================================="
+    Write-Host "`n=================================="
     Write-Host " Resolve Open Alerts via API v1.0"
     Write-Host "=================================="
     Write-Host "Target: "$Env:Target
@@ -79,15 +78,15 @@ function Run-ResolveOpenAlertsProgram {
 	}
     Write-Host "Priority: "$Env:Priority
 
-    Write-Host "Searching API Key in System Variable..."
+    Write-Host "Searching API Token in System Variable..."
     if(-not (Assert-ApiKey)) {
-        Write-Host "API Key NOT found!"
-        Write-Host "Please save API Key on device with command below before rerunning component..."
-        Write-Host "[Environment]::SetEnvironmentVariable('RMMAPIKey','api-key-from-postman-here','Machine')"
+        Write-Host "API Token NOT found!"
+        Write-Host "Please save API Token on device with command below before rerunning component..."
+        Write-Host "[Environment]::SetEnvironmentVariable('RMMAPIKey','enter-api-token-here','Machine')"
         Write-Host "RMM APIv2 Doc: https://help.aem.autotask.net/en/Content/2SETUP/APIv2.htm"
         Write-Error "Exiting..." -ErrorAction Stop
     }
-    Write-Host "API Key found."
+    Write-Host "API Token found."
 
     Write-Host "Verifying RMM Platform..."
     if((-not (Assert-RMMPlatform)) -or ((Get-RMMPlatform).length -eq 0)) {
@@ -108,9 +107,15 @@ function Run-ResolveOpenAlertsProgram {
         $openAlerts = $openAlerts | Where {$_.Priority -eq $Env:Priority}
     }
     
+	# Rate Limit: Requests to the API are limited to 600 requests per minute
+	$request = 1
     ForEach ($alert in $openAlerts) {
+		if ($request%500 -eq 0) {
+			Start-Sleep -Seconds 60
+		}
         Write-Host "Resolving Alert: "$alert.alertUid
         Resolve-OpenAlert -AlertUid $alert.alertUid
+		$request++
     }
 }
 
