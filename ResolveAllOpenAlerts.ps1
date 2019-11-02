@@ -34,7 +34,7 @@ function Get-ApiHeader {
     return $header
 }
 
-function Query-RMMApi {
+function Invoke-RMMApi {
     Param(
         [Parameter(Mandatory=$true)]
         [string]$Uri,
@@ -56,25 +56,25 @@ function Query-RMMApi {
 }
 
 function Get-OpenAlerts ([string]$Uri) {
-	$alerts = (Query-RMMApi -Uri $Uri).alerts
+	$alerts = (Invoke-RMMApi -Uri $Uri).alerts
     return $alerts
 }
 
 function Resolve-OpenAlert ([string]$AlertUid) {
     $resolvePath = "alert/{0}/resolve" -f $AlertUid
-    $apiV2Uri = Get-ApiV2Uri
+							
     $alertUri = "{0}{1}" -f (Get-ApiV2Uri), $resolvePath
 
-    Query-RMMApi -Uri $alertUri -Method "POST"
+    Invoke-RMMApi -Uri $alertUri -Method "POST"
 }
 
-function Run-ResolveOpenAlertsProgram {
-    Write-Host "`n=================================="
-    Write-Host " Resolve Open Alerts via API v1.0"
-    Write-Host "=================================="
+function Start-RMMComponent {
+    Write-Host "`n=============================="
+    Write-Host " Resolve All Open Alerts v1.1"
+    Write-Host "=============================="
     Write-Host "Target: "$Env:Target
 	if ($Env:Target -eq "site") {
-		Write-Host "SiteID: $($Env:SiteID)"
+		Write-Host "SiteID: "$Env:SiteID
 	}
     Write-Host "Priority: "$Env:Priority
 
@@ -95,22 +95,23 @@ function Run-ResolveOpenAlertsProgram {
     }
     Write-Host "RMM Platform: "(Get-RMMPlatform)
 
-    $alertUri = Get-AlertApiUri
     Write-Host "Reading Open Alerts..."
-    $openAlerts = Get-OpenAlerts -Uri $alertUri
+    $openAlerts = Get-OpenAlerts -Uri (Get-AlertApiUri)
     if (-not $openAlerts) {
         Write-Host "No Open Alerts found!"
         Write-Error "Exiting..." -ErrorAction Stop
     }
 
     if ($Env:Priority -ne 'All') {
-        $openAlerts = $openAlerts | Where {$_.Priority -eq $Env:Priority}
+        $openAlerts = $openAlerts | Where-Object {$_.Priority -eq $Env:Priority}
     }
     
-	# Rate Limit: Requests to the API are limited to 600 requests per minute
+	# Rate Limit: Requests to the RMM API are limited to 600 requests per minute
+	# Rate Limit: RMM API introduces a 1 sec delay to responses after 540 requests
 	$request = 1
+	$rateLimit = 500
     ForEach ($alert in $openAlerts) {
-		if ($request%500 -eq 0) {
+		if ($request%$rateLimit -eq 0) {
 			Start-Sleep -Seconds 60
 		}
         Write-Host "Resolving Alert: "$alert.alertUid
@@ -119,4 +120,4 @@ function Run-ResolveOpenAlertsProgram {
     }
 }
 
-Run-ResolveOpenAlertsProgram
+Start-RMMComponent
