@@ -72,7 +72,7 @@ function Start-RMMComponent {
     Write-Host "`n=============================="
     Write-Host " Resolve All Open Alerts v1.1"
     Write-Host "=============================="
-    Write-Host "Target: "$Env:Target
+    Write-Host "Target: "(Get-Culture).TextInfo.ToTitleCase($Env:Target)
 	if ($Env:Target -eq "site") {
 		Write-Host "SiteID: "$Env:SiteID
 	}
