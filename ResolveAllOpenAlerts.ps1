@@ -1,32 +1,9 @@
-function New-APITokenNotFoundError {
-    [string]$componentError = "API Token NOT found!`n" +
-        "Please save API Token on device with command below " +
-        "before rerunning component...`n" +
-        "[Environment]::SetEnvironmentVariable('RMMAPIKey'," +
-        "'enter-api-token-here','Machine')`n" +
-        "RMM APIv2 Doc: https://help.aem.autotask.net/en/Content/2SETUP/APIv2.htm`n" +
-        "Exiting..."
-    return $componentError
-}
-
-function New-InvalidPlatformError {
-    [string]$componentError = "Could not determine RMM Platform!`nExiting..."
-    return $componentError
-}
-
-function New-AlertsNotFoundError {
-    [string]$componentError = "No Open Alerts found!`nExiting..."
-    return $componentError
-}
-
 function Test-ApiToken {
-    [bool]$isApiKeySaved = Test-Path Env:RMMAPIKey
-	return $isApiKeySaved
+	return Test-Path Env:RMMAPIKey
 }
 
 function Test-RMMPlatform {
-    [bool]$isPlatformDetected = Test-Path Env:CS_WS_ADDRESS
-    return $isPlatformDetected
+    return Test-Path Env:CS_WS_ADDRESS
 }
 
 function Get-RMMPlatform {
@@ -52,8 +29,18 @@ function Get-ApiAlertUrl {
 
 function Get-ApiHeader {
     $token = "Bearer {0}" -f $Env:RMMAPIKey
-    [hashtable]$header = @{Authorization = $token}
-    return $header
+    return @{Authorization = $token}
+}
+
+function Show-ApiStatusError {
+    Param([string]$StatusCode)
+
+    switch ($StatusCode) {
+        401 { Write-Output "[FAIL] Unauthorised Access! Check API token." }
+        403 { Write-Output "[FAIL] Access Denied! Check Security Level..." }
+        404 { Write-Output "[FAIL] No Data Found!" }
+        default { Write-Output "[FAIL] Check Stderr for details..." }
+    }
 }
 
 function Invoke-RMMApi {
@@ -70,8 +57,10 @@ function Invoke-RMMApi {
 
     try {
         $queryResults = Invoke-WebRequest -Uri $Uri -Headers (Get-ApiHeader) `
-                -Method $Method -UseBasicParsing
+            -Method $Method -UseBasicParsing -Verbose:$false
     } catch {
+        $statusCode = $_.Exception.Response.StatusCode.value__
+        Show-ApiStatusError -StatusCode $statusCode
         Write-Verbose (" Url: {0}" -f $Uri)
         Write-Error $_.Exception -ErrorAction Stop
     }
@@ -81,8 +70,7 @@ function Invoke-RMMApi {
 function Get-OpenAlerts {
     Param([string]$Uri)
 
-	$alerts = (Invoke-RMMApi -Uri $Uri)
-    return $alerts
+    return Invoke-RMMApi -Uri $Uri
 }
 
 function Find-AlertsByOptions {
@@ -100,7 +88,7 @@ function Resolve-OpenAlert {
 
     $resolvePath = "alert/{0}/resolve" -f $AlertUid
     $alertUri = "{0}{1}" -f (Get-ApiUrl), $resolvePath
-    Invoke-RMMApi -Uri $alertUri -Method "POST"
+    Invoke-RMMApi -Uri $alertUri -Method "POST" | Out-Null
 }
 
 function Resolve-AllAlerts {
@@ -127,7 +115,7 @@ Resolve-AllAlerts introduces a 30s delay after processing every 250 alerts for R
         if (-not $openAlerts.alerts) {
             Write-Output "[FAIL] Error reading Alerts, see Stderr..."
             Write-Output (" Total Alerts Resolved: {0}" -f $resolvedCount)
-            Write-Error (New-AlertsNotFoundError) -ErrorAction Stop
+            Write-Error "Open Alerts Not Found!" -ErrorAction Stop
         }
 
         $openAlerts = Find-AlertsByOptions -Alerts $openAlerts
@@ -165,13 +153,13 @@ function Invoke-RMMComponent {
 
     if(-not (Test-ApiToken)) {
         Write-Output "[Auth] Token Error, view Stderr for details..."
-        Write-Error -Message (New-APITokenNotFoundError) -ErrorAction Stop
+        Write-Error "API Token Not Found!" -ErrorAction Stop
     }
     Write-Output "[Auth] Token found."
 
     if((-not (Test-RMMPlatform)) -or ((Get-RMMPlatform).length -eq 0)) {
         Write-Output "[Platform] Not Found, view Stderr for details..."
-        Write-Error -Message (New-InvalidPlatformError) -ErrorAction Stop
+        Write-Error "RMM Platform Unknown!" -ErrorAction Stop
     }
     Write-Output ("[Platform] RMM - {0}" -f (Get-RMMPlatform))
 
