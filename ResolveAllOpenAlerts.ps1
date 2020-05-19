@@ -43,7 +43,21 @@ function Show-ApiStatusError {
     }
 }
 
+function Test-RateLimit {
+    Param(
+        [string]$Hits,
+        [string]$Buffer
+    )
+
+    return ($Hits -and $Hits % $Buffer -eq 0)
+}
+
 function Invoke-RMMApi {
+    <#
+.Description
+RMM API limits requests to 600 per minute. Rate limiting begins at 500 requests.
+This function invokes the RMM API ata rate of 200 requests every 30 seconds
+#>
     Param(
         [Parameter(Mandatory=$true)]
         [string]$Uri,
@@ -51,13 +65,27 @@ function Invoke-RMMApi {
         [string]$Method
     )
 
+    $apiHits = 0
+    $rateLimitCount = 0
+    $rateBuffer = 200
+    $delay = 30
+
+
     if ($Method -eq "") {
         $Method = "GET"
+    }
+
+    if (Test-RateLimit -Hits $apiHits -Buffer $rateBuffer) {
+        $rateLimitCount++
+        Write-Verbose ("RateLimit x{0} | API hits: {1} | Sleep: {2}s" -f
+            $rateLimitCount, $apiHits, $delay)
+        Start-Sleep -Seconds $delay
     }
 
     try {
         $queryResults = Invoke-WebRequest -Uri $Uri -Headers (Get-ApiHeader) `
             -Method $Method -UseBasicParsing -Verbose:$false
+        $apiHits++
     } catch {
         $statusCode = $_.Exception.Response.StatusCode.value__
         Show-ApiStatusError -StatusCode $statusCode
@@ -92,23 +120,19 @@ function Resolve-OpenAlert {
 }
 
 function Resolve-AllAlerts {
-<#
-.Description
-RMM API requests are limited to 250 results per request and 600 requests per minute
-Resolve-AllAlerts introduces a 30s delay after processing every 250 alerts for Rate Limit
-#>
     Param([string]$Uri)
 
     $openAlerts = @{}
+    $page = 0
     $resolvedCount = 0
 
     do {
         $nextPageUri = $openAlerts.pageDetails.nextPageUrl
         if ($nextPageUri) {
             $Uri = $nextPageUri
+            $page++
             Write-Verbose ("NextPage: Page {0} | Alerts Resolved: {1}" -f
                 $page, $resolvedCount)
-    		Start-Sleep -Seconds 30
         }
 
         $openAlerts = Get-OpenAlerts -Uri $Uri
@@ -119,15 +143,15 @@ Resolve-AllAlerts introduces a 30s delay after processing every 250 alerts for R
         }
 
         $openAlerts = Find-AlertsByOptions -Alerts $openAlerts
-        $nextPageUri = $openAlerts.pageDetails.nextPageUrl
         $alertCount = $openAlerts.alerts.count
 
         if ($alertCount -gt 0) {
             Write-Output ("[Batch] Processing {0} Alert(s)..." -f $alertCount)
             ForEach ($alert in $openAlerts.alerts) {
                 Resolve-OpenAlert -AlertUid $alert.alertUid
+                $resolvedCount++
             }
-            $resolvedCount = $resolvedCount + $alertCount
+            $nextPageUri = $openAlerts.pageDetails.nextPageUrl
         }
         else {
             Write-Output "[NotFound] No matching open Alerts..."
