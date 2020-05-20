@@ -1,3 +1,18 @@
+<#
+    Resolve Open Alerts v2.0.0
+    - Use Invoke-RMMComponent for production
+    - Use Invoke-MockComponent for development, controls $script:isDevelopment
+    - Development only simulates and Never resolves Alerts
+    - isVerboseDetailed $true shows each Alert resolved
+#>
+
+$script:apiHits = 0
+$script:rateLimitCount = 0
+$script:rateBuffer = 200
+$script:delay = 30
+$script:isDevelopment = $false
+$script:isVerboseDetailed = $true
+
 function Test-ApiToken {
 	return Test-Path Env:RMMAPIKey
 }
@@ -19,6 +34,10 @@ function Get-ApiUrl {
 
 function Get-ApiAlertUrl {
     $alertPath = "/alerts/open"
+
+    if ($script:isDevelopment) {
+        $alertPath = "/alerts/resolved"
+    }
 
     if ($Env:Target -eq "site") {
         $alertPath = "/{0}{1}" -f $Env:SiteID, $alertPath
@@ -49,7 +68,7 @@ function Test-RateLimit {
         [string]$Buffer
     )
 
-    return ($Hits -and $Hits % $Buffer -eq 0)
+    return ($Hits -gt 0 -and $Hits % $Buffer -eq 0)
 }
 
 function Invoke-RMMApi {
@@ -65,27 +84,21 @@ This function invokes the RMM API ata rate of 200 requests every 30 seconds
         [string]$Method
     )
 
-    $apiHits = 0
-    $rateLimitCount = 0
-    $rateBuffer = 200
-    $delay = 30
-
-
     if ($Method -eq "") {
         $Method = "GET"
     }
 
-    if (Test-RateLimit -Hits $apiHits -Buffer $rateBuffer) {
-        $rateLimitCount++
+    if (Test-RateLimit -Hits $script:apiHits -Buffer $script:rateBuffer) {
+        $script:rateLimitCount++
         Write-Verbose ("RateLimit x{0} | API hits: {1} | Sleep: {2}s" -f
-            $rateLimitCount, $apiHits, $delay)
-        Start-Sleep -Seconds $delay
+            $script:rateLimitCount, $script:apiHits, $script:delay)
+        Start-Sleep -Seconds $script:delay
     }
 
     try {
         $queryResults = Invoke-WebRequest -Uri $Uri -Headers (Get-ApiHeader) `
             -Method $Method -UseBasicParsing -Verbose:$false
-        $apiHits++
+        $script:apiHits++
     } catch {
         $statusCode = $_.Exception.Response.StatusCode.value__
         Show-ApiStatusError -StatusCode $statusCode
@@ -115,8 +128,17 @@ function Resolve-OpenAlert {
     Param([string]$AlertUid)
 
     $resolvePath = "alert/{0}/resolve" -f $AlertUid
+    $method = "POST"
+    if ($script:isDevelopment) {
+        $resolvePath = "alert/{0}" -f $AlertUid
+        $method = "GET"
+    }
     $alertUri = "{0}{1}" -f (Get-ApiUrl), $resolvePath
-    Invoke-RMMApi -Uri $alertUri -Method "POST" | Out-Null
+
+    Invoke-RMMApi -Uri $alertUri -Method $method | Out-Null
+    if ($script:isVerboseDetailed) {
+        Write-Verbose ("Resolved Alert Uid: {0}" -f $AlertUid)
+    }
 }
 
 function Resolve-AllAlerts {
@@ -167,7 +189,6 @@ function Invoke-RMMComponent {
     Write-Output " Resolve All Open Alerts v1.1"
     Write-Output "=============================="
 
-
     Write-Output "[Options]"
     Write-Output (" Target: {0}" -f (Get-Culture).TextInfo.ToTitleCase($Env:Target))
     if ($Env:Target -eq "site") {
@@ -191,4 +212,25 @@ function Invoke-RMMComponent {
     Resolve-AllAlerts -Uri (Get-ApiAlertUrl)
 }
 
+function Invoke-MockComponent {
+    <#
+.Description
+MOCK RUN: Use Resolved Alerts for Integration Testing
+Set MOCK environmental variables below
+#>
+    $Env:CS_WS_ADDRESS = "" # merlot-centrastage.net | concord-centrastage.net | etc
+    $Env:RMMAPIKey = ""
+    $Env:Target = "account" # site | account
+    $Env:SiteID = "" # set here if Env:Target = "site"
+    $Env:Priority = "All" # All | Information | Low | Moderate | High | Critical
+
+    $oldPrefs = $VerbosePreference
+    $VerbosePreference = "Continue"
+    $script:isDevelopment = $true
+
+    Invoke-RMMComponent
+    $VerbosePreference = $oldPrefs
+}
+
+#Invoke-MockComponent
 Invoke-RMMComponent
