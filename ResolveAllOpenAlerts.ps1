@@ -138,21 +138,18 @@ function Find-AlertsByOptions {
     Param([PSCustomObject]$Alerts)
 
     if ($Env:Priority -ne 'All') {
-        Write-Verbose ("[Filter] Priority - {0}" -f $Env:Priority)
         $Alerts.alerts = $Alerts.alerts | Where-Object {$_.priority -eq $Env:Priority}
 										 
 		 
     }
 
     if ($Env:MonitorType -and $Alerts.alerts.alertContext) {
-        Write-Verbose ("[Filter] MonitorType - {0}" -f $Env:MonitorType)
         $Alerts.alerts = $Alerts.alerts | Where-Object {
             $_.alertContext."@class" -like "$Env:MonitorType*"
         }
     }
 
     if ($Env:DeviceType -and $Alerts.alerts.alertSourceInfo) {
-        Write-Verbose ("[Filter] DeviceType - {0}" -f $Env:DeviceType)
         $Alerts.alerts = $Alerts.alerts | Where-Object {
             $deviceUid = $_.alertSourceInfo.deviceUid
             $device = Get-Device -Uid $deviceUid
@@ -161,7 +158,6 @@ function Find-AlertsByOptions {
     }
 
     if ($Env:UdfNumber -and $Alerts.alerts.alertSourceInfo) {
-        Write-Verbose ("[Filter] UDF - {0}" -f $Env:UdfNumber)
         $Alerts.alerts = $Alerts.alerts | Where-Object {
             $deviceUid = $_.alertSourceInfo.deviceUid
             $device = Get-Device -Uid $deviceUid
@@ -185,9 +181,6 @@ function Resolve-OpenAlert {
     $alertUri = "{0}{1}" -f (Get-ApiUrl), $resolvePath
 
     Invoke-RMMApi -Uri $alertUri -Method $method | Out-Null
-    if ($script:isVerboseDetailed) {
-        Write-Verbose ("Resolved Alert Uid: {0}" -f $AlertUid)
-    }
 }
 
 function Resolve-AllAlerts {
@@ -221,6 +214,10 @@ function Resolve-AllAlerts {
             ForEach ($alert in $openAlerts.alerts) {
                 Resolve-OpenAlert -AlertUid $alert.alertUid
                 $resolvedCount++
+                if ($script:isVerboseDetailed) {
+                    Write-Verbose ("Resolved Alert: {0} | Device {1}" -f 
+                        $alert.alertUid, $alert.alertSourceInfo.deviceName)
+                }
             }
             $nextPageUri = $openAlerts.pageDetails.nextPageUrl
         }
