@@ -150,7 +150,7 @@ function Get-Device {
     Param([string]$Uid)
 
     if ($script:deviceCache.Contains($Uid)) {
-        return $script:deviceCache.$Uid
+        return $script:deviceCache[$Uid]
     }
     $uri = Get-ApiDeviceUri -Uid $Uid
     $device = Invoke-RMMApi -Uri $uri -Action "Device"
