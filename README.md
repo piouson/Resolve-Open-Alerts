@@ -2,7 +2,7 @@
 
 A Datto RMM Component to resolve Open Alerts via the RMM API.
 
-> This Component compliments existing Alert Resolution options in RMM and provides additional flexibility and control over Alert Resolution, especially for 100s and 1000s of Open Alerts.
+> This Component compliments existing Alert Resolution options in RMM, offering more flexibility and control over Alert Resolution, especially for 100s and 1000s of Open Alerts.
 
 ![License: GPL-3](https://img.shields.io/github/license/piouson/Resolve-Open-Alerts) ![Powershell: Version 3, 5 and 6](https://img.shields.io/badge/powershell-3.0%20%7C%205.1%20%7C%206.2-blue) ![Platforms: Windows, macOS, Linux](https://img.shields.io/badge/platform-windows%20%7C%20macos%20%7C%20linux-brightgreen) ![Releave: Version 2](https://img.shields.io/github/v/release/piouson/Resolve-Open-Alerts?sort=semver) ![Release Date](https://img.shields.io/github/release-date/piouson/Resolve-Open-Alerts) ![Downloads](https://img.shields.io/github/downloads/piouson/Resolve-Open-Alerts/total)
 
@@ -20,6 +20,8 @@ The quickest way to try out this component is by running in Powershell.
 - Define [environment variables](#environment-variables) in [`Invoke-MockComponent`](https://github.com/piouson/Resolve-Open-Alerts/blob/71b99a72c550e37e3bc72e8a6fd06ce743bd4083/ResolveAllOpenAlerts.ps1#L292)
 - Switch to development mode, see [Running Tests](#running-tests)
 - Run script
+
+> The default RMM script timeout of 1 hour should resolve max 30,000 Alerts.
 
 ## Environment Variables
 
