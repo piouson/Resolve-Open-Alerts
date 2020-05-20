@@ -11,7 +11,7 @@ $script:rateLimitCount = 0
 $script:rateBuffer = 200
 $script:delay = 30
 $script:isDevelopment = $false
-$script:isVerboseDetailed = $true
+$script:isVerboseDetailed = $false
 
 function Test-ApiToken {
 	return Test-Path Env:RMMAPIKey
@@ -44,6 +44,14 @@ function Get-ApiAlertUrl {
     }
     [string]$alertApiUri = "{0}{1}{2}" -f (Get-ApiUrl), $Env:Target, $alertPath
     return $alertApiUri
+}
+
+function Get-ApiDeviceUrl {
+    Param([string]$Uid)
+
+    $devicePath = "device/{0}" -f $Uid
+    [string]$deviceApiUrl = "{0}{1}" -f (Get-ApiUrl), $devicePath
+    return $deviceApiUrl
 }
 
 function Get-ApiHeader {
@@ -98,13 +106,16 @@ This function invokes the RMM API ata rate of 200 requests every 30 seconds
     try {
         $queryResults = Invoke-WebRequest -Uri $Uri -Headers (Get-ApiHeader) `
             -Method $Method -UseBasicParsing -Verbose:$false
+											  
         $script:apiHits++
+	 
     } catch {
         $statusCode = $_.Exception.Response.StatusCode.value__
         Show-ApiStatusError -StatusCode $statusCode
         Write-Verbose (" Url: {0}" -f $Uri)
         Write-Error $_.Exception -ErrorAction Stop
     }
+
     return (ConvertFrom-Json $queryResults)
 }
 
@@ -112,6 +123,15 @@ function Get-OpenAlerts {
     Param([string]$Uri)
 
     return Invoke-RMMApi -Uri $Uri
+				  
+}
+
+function Get-Device {
+    Param([string]$Uid)
+
+    $uri = Get-ApiDeviceUrl -Uid $Uid
+    $device = Invoke-RMMApi -Uri $uri
+    return $device
 }
 
 function Find-AlertsByOptions {
@@ -120,7 +140,35 @@ function Find-AlertsByOptions {
     if ($Env:Priority -ne 'All') {
         Write-Verbose ("[Filter] Priority - {0}" -f $Env:Priority)
         $Alerts.alerts = $Alerts.alerts | Where-Object {$_.priority -eq $Env:Priority}
+										 
+		 
     }
+
+    if ($Env:MonitorType -and $Alerts.alerts.alertContext) {
+        Write-Verbose ("[Filter] MonitorType - {0}" -f $Env:MonitorType)
+        $Alerts.alerts = $Alerts.alerts | Where-Object {
+            $_.alertContext."@class" -like "$Env:MonitorType*"
+        }
+    }
+
+    if ($Env:DeviceType -and $Alerts.alerts.alertSourceInfo) {
+        Write-Verbose ("[Filter] DeviceType - {0}" -f $Env:DeviceType)
+        $Alerts.alerts = $Alerts.alerts | Where-Object {
+            $deviceUid = $_.alertSourceInfo.deviceUid
+            $device = Get-Device -Uid $deviceUid
+            $device.deviceType.category -like "$Env:DeviceType*"
+        }
+    }
+
+    if ($Env:UdfNumber -and $Alerts.alerts.alertSourceInfo) {
+        Write-Verbose ("[Filter] UDF - {0}" -f $Env:UdfNumber)
+        $Alerts.alerts = $Alerts.alerts | Where-Object {
+            $deviceUid = $_.alertSourceInfo.deviceUid
+            $device = Get-Device -Uid $deviceUid
+            $device.udf[$Env:UdfNumber] -eq "resolvealerts"
+        }
+    }
+
     return $Alerts
 }
 
@@ -130,6 +178,7 @@ function Resolve-OpenAlert {
     $resolvePath = "alert/{0}/resolve" -f $AlertUid
     $method = "POST"
     if ($script:isDevelopment) {
+							 
         $resolvePath = "alert/{0}" -f $AlertUid
         $method = "GET"
     }
@@ -186,7 +235,7 @@ function Resolve-AllAlerts {
 
 function Invoke-RMMComponent {
     Write-Output "`n=============================="
-    Write-Output " Resolve All Open Alerts v1.1"
+    Write-Output " Resolve All Open Alerts v1.3.0"
     Write-Output "=============================="
 
     Write-Output "[Options]"
@@ -195,6 +244,9 @@ function Invoke-RMMComponent {
         Write-Output (" SiteID: {0}" -f $Env:SiteID)
     }
     Write-Output (" Priority: {0}" -f $Env:Priority)
+    Write-Output (" MonitorType: {0}" -f $Env:MonitorType)
+    Write-Output (" DeviceType: {0}" -f $Env:DeviceType)
+    Write-Output (" UDF: {0}" -f $Env:UdfNumber)
 
     if(-not (Test-ApiToken)) {
         Write-Output "[Auth] Token Error, view Stderr for details..."
@@ -215,14 +267,18 @@ function Invoke-RMMComponent {
 function Invoke-MockComponent {
     <#
 .Description
-MOCK RUN: Use Resolved Alerts for Integration Testing
-Set MOCK environmental variables below
+Mock Run: Only uses already Resolved Alerts for simulation
+This is useful for Integration Testing and Stress Testing
+Set Mock environment variables below
 #>
-    $Env:CS_WS_ADDRESS = "" # merlot-centrastage.net | concord-centrastage.net | etc
+    $Env:CS_WS_ADDRESS = "" # merlot-centrastage | concord-centrastage | etc
     $Env:RMMAPIKey = ""
     $Env:Target = "account" # site | account
     $Env:SiteID = "" # set here if Env:Target = "site"
     $Env:Priority = "All" # All | Information | Low | Moderate | High | Critical
+    $Env:MonitorType = "" # online_offline | eventlog | custom_snmp | etc
+    $Env:DeviceType = "" # Desktop | Laptop | Server | ESXI Host | Printer | etc
+    $Env:UdfNumber = "" # UDF1-30, UDF must be set to "resolvealerts" in RMM
 
     $oldPrefs = $VerbosePreference
     $VerbosePreference = "Continue"
