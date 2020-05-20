@@ -49,7 +49,7 @@ function Test-RateLimit {
         [string]$Buffer
     )
 
-    return ($Hits -and $Hits % $Buffer -eq 0)
+    return ($Hits -gt 0 -and $Hits % $Buffer -eq 0)
 }
 
 function Invoke-RMMApi {
