@@ -1,32 +1,28 @@
-function New-APITokenNotFoundError {
-    [string]$componentError = "API Token NOT found!`n" +
-        "Please save API Token on device with command below " +
-        "before rerunning component...`n" +
-        "[Environment]::SetEnvironmentVariable('RMMAPIKey'," +
-        "'enter-api-token-here','Machine')`n" +
-        "RMM APIv2 Doc: https://help.aem.autotask.net/en/Content/2SETUP/APIv2.htm`n" +
-        "Exiting..."
-    return $componentError
+<#
+    Resolve Open Alerts v2.0.0
+    - Use Invoke-RMMComponent for production
+    - Use Invoke-MockComponent for development, controls $script:isDevelopment
+    - Development only simulates and Never resolves Alerts
+    - isVerboseDetailed $true shows each Alert resolved
+    - DeviceCache to skip search for cached devices during Alert filtering
+#>
+
+$script:version = " Resolve All Open Alerts v1.4.2"
+$script:apiHits = 0
+$script:rateLimitCount = 0
+$script:rateBuffer = 200
+$script:delay = 30
+$script:statusCode = 0
+$script:isDevelopment = $false
+$script:isVerboseDetailed = $true
+$script:deviceCache = @{}
+
+function Test-ApiToken {
+	return Test-Path Env:RMMAPIKey
 }
 
-function New-InvalidPlatformError {
-    [string]$componentError = "Could not determine RMM Platform!`nExiting..."
-    return $componentError
-}
-
-function New-AlertsNotFoundError {
-    [string]$componentError = "No Open Alerts found!`nExiting..."
-    return $componentError
-}
-
-function Assert-ApiKey {
-    [bool]$isApiKeySaved = Test-Path Env:RMMAPIKey
-	return $isApiKeySaved
-}
-
-function Assert-RMMPlatform {
-    [bool]$isPlatformDetected = Test-Path Env:CS_WS_ADDRESS
-    return $isPlatformDetected
+function Test-RMMPlatform {
+    return Test-Path Env:CS_WS_ADDRESS
 }
 
 function Get-RMMPlatform {
@@ -34,144 +30,289 @@ function Get-RMMPlatform {
     return $platform
 }
 
-function Get-ApiV2Uri {
+function Get-ApiUri {
     $platform = Get-RMMPlatform
     [string]$apiUri = "https://{0}-api.centrastage.net/api/v2/" -f $platform
     return $apiUri
 }
 
-function Get-AlertApiUri {
+function Get-ApiAlertUri {
     $alertPath = "/alerts/open"
-								   
+
+    if ($script:isDevelopment) {
+        $alertPath = "/alerts/resolved"
+    }
+
     if ($Env:Target -eq "site") {
         $alertPath = "/{0}{1}" -f $Env:SiteID, $alertPath
     }
-    [string]$alertApiUri = "{0}{1}{2}" -f (Get-ApiV2Uri), $Env:Target, $alertPath
+    [string]$alertApiUri = "{0}{1}{2}" -f (Get-ApiUri), $Env:Target, $alertPath
     return $alertApiUri
+}
+
+function Get-ApiDeviceUri {
+    Param([string]$Uid)
+
+    $devicePath = "device/{0}" -f $Uid
+    [string]$deviceApiUri = "{0}{1}" -f (Get-ApiUri), $devicePath
+    return $deviceApiUri
 }
 
 function Get-ApiHeader {
     $token = "Bearer {0}" -f $Env:RMMAPIKey
-    [hashtable]$header = @{Authorization = $token}
-    return $header
+    return @{Authorization = $token}
+}
+
+function Show-ApiStatusError {
+    Param([string]$Action)
+
+    $message = switch ($script:statusCode) {
+        401 { "[FAIL] Unauthorised Access! Check API token." }
+        403 { "[FAIL] Access Denied! Check Security Level..." }
+        404 { ("[FAIL] {0} Not Found!" -f $Action) }
+        default { "[ERROR] Check Stderr for details..." }
+    }
+    return $message
+}
+
+function Test-RateLimit {
+    Param(
+        [string]$Hits,
+        [string]$Buffer
+    )
+
+    return ($Hits -gt 0 -and $Hits % $Buffer -eq 0)
 }
 
 function Invoke-RMMApi {
+    <#
+.Description
+RMM API limits requests to 600 per minute. Rate limiting begins at 500 requests.
+This function invokes the RMM API ata rate of 200 requests every 30 seconds
+#>
     Param(
         [Parameter(Mandatory=$true)]
         [string]$Uri,
         [Parameter(Mandatory=$false)]
-        [string]$Method
+        [string]$Method,
+        [Parameter(Mandatory=$false)]
+        [string]$Action
     )
 
-    if ($Method -eq "") {
+    if (-not $Method) {
         $Method = "GET"
+    }
+
+    if (-not $Action) {
+        $Action = "Alert"
+    }
+
+    if (Test-RateLimit -Hits $script:apiHits -Buffer $script:rateBuffer) {
+        $script:rateLimitCount++
+        Write-Verbose ("RateLimit x{0} | API hits: {1} | Sleep: {2}s" -f
+            $script:rateLimitCount, $script:apiHits, $script:delay)
+        Start-Sleep -Seconds $script:delay
     }
 
     try {
         $queryResults = Invoke-WebRequest -Uri $Uri -Headers (Get-ApiHeader) `
-                -Method $Method -UseBasicParsing
+            -Method $Method -UseBasicParsing -Verbose:$false
+
+        $script:apiHits++
+        $script:statusCode = $_.Exception.Response.StatusCode.value__
+
     } catch {
-        Write-Host "Error reading API, view Stderr for details..."
-        Write-Error -Message $_.Exception -ErrorAction Stop
+        $script:statusCode = $_.Exception.Response.StatusCode.value__
+        if ($script:isVerboseDetailed) {
+            Write-Verbose (
+                "{0} | {1}" -f (Show-ApiStatusError -Action $Action),
+                ($Uri.split("api/")[1])
+            )
+        }
+        if ($Action -eq "Alert") {
+            Write-Error $_.Exception -ErrorAction Stop
+        }
     }
-    return (ConvertFrom-Json $queryResults)
+
+    if ($queryResults) {
+        return (ConvertFrom-Json $queryResults)
+    }
+    return $queryResults
 }
 
 function Get-OpenAlerts {
     Param([string]$Uri)
 
-	$alerts = (Invoke-RMMApi -Uri $Uri)
-    return $alerts
+    return Invoke-RMMApi -Uri $Uri
 }
 
-function Find-AlertsByPriority {
+function Get-Device {
+    Param([string]$Uid)
+
+    if ($script:deviceCache.Contains($Uid)) {
+        return $script:deviceCache[$Uid]
+    }
+    $uri = Get-ApiDeviceUri -Uid $Uid
+    $device = Invoke-RMMApi -Uri $uri -Action "Device"
+    $script:deviceCache.Add($Uid, $device)
+    return $device
+}
+
+function Find-AlertsByOptions {
     Param([PSCustomObject]$Alerts)
-    
+
     if ($Env:Priority -ne 'All') {
         $Alerts.alerts = $Alerts.alerts | Where-Object {$_.priority -eq $Env:Priority}
     }
+
+    if ($Env:MonitorType -and $Alerts.alerts.alertContext) {
+        $Alerts.alerts = $Alerts.alerts | Where-Object {
+            $_.alertContext."@class" -like "$Env:MonitorType*"
+        }
+    }
+
+    if ($Env:DeviceType -and $Alerts.alerts.alertSourceInfo) {
+        $Alerts.alerts = $Alerts.alerts | Where-Object {
+            $deviceUid = $_.alertSourceInfo.deviceUid
+            $device = Get-Device -Uid $deviceUid
+            $device.deviceType.category -like "$Env:DeviceType*"
+        }
+    }
+
+    if ($Env:UdfNumber -and $Alerts.alerts.alertSourceInfo) {
+        $Alerts.alerts = $Alerts.alerts | Where-Object {
+            $deviceUid = $_.alertSourceInfo.deviceUid
+            $device = Get-Device -Uid $deviceUid
+            $device.udf[$Env:UdfNumber] -eq "resolvealerts"
+        }
+    }
+
     return $Alerts
 }
 
 function Resolve-OpenAlert {
     Param([string]$AlertUid)
 
-    $resolvePath = "alert/{0}/resolve" -f $AlertUid		
-    $alertUri = "{0}{1}" -f (Get-ApiV2Uri), $resolvePath
-    Invoke-RMMApi -Uri $alertUri -Method "POST"
+    $resolvePath = "alert/{0}/resolve" -f $AlertUid
+    $method = "POST"
+    if ($script:isDevelopment) {
+
+        $resolvePath = "alert/{0}" -f $AlertUid
+        $method = "GET"
+    }
+    $alertUri = "{0}{1}" -f (Get-ApiUri), $resolvePath
+
+    Invoke-RMMApi -Uri $alertUri -Method $method | Out-Null
 }
 
 function Resolve-AllAlerts {
-<#
-.Description
-RMM API requests are limited to 250 results per request and 600 requests per minute
-Resolve-AllAlerts introduces a 30s delay after processing every 250 alerts for Rate Limit
-#>
     Param([string]$Uri)
-    
+
     $openAlerts = @{}
+    $page = 0
     $resolvedCount = 0
-    
+
     do {
         $nextPageUri = $openAlerts.pageDetails.nextPageUrl
         if ($nextPageUri) {
             $Uri = $nextPageUri
-            Write-Host "Moving to next page of alerts..."
-    		Start-Sleep -Seconds 30
+            $page++
+            Write-Verbose ("NextPage: Page {0} | Total Alerts Resolved: {1}" -f
+                $page, $resolvedCount)
         }
 
-        $openAlerts = Get-OpenAlerts -Uri $Uri      
+        $openAlerts = Get-OpenAlerts -Uri $Uri
         if (-not $openAlerts.alerts) {
-            Write-Host "Error reading Alerts, view Stderr for details..."
-            Write-Error (New-AlertsNotFoundError) -ErrorAction Stop
+            Write-Host "[FAIL] Error reading Alerts, see Stderr..."
+            Write-Host (" Total Alerts Resolved: {0}" -f $resolvedCount)
+            Write-Error "Open Alerts Not Found!" -ErrorAction Stop
         }
-		
-        $openAlerts = Find-AlertsByPriority -Alerts $openAlerts
-        $nextPageUri = $openAlerts.pageDetails.nextPageUrl
+
+        $openAlerts = Find-AlertsByOptions -Alerts $openAlerts
         $alertCount = $openAlerts.alerts.count
 
         if ($alertCount -gt 0) {
-            Write-Host ("Resolving {0} Alerts..." -f $alertCount)
+            Write-Host ("[Next Page] Processing {0} Alert(s)..." -f $alertCount)
             ForEach ($alert in $openAlerts.alerts) {
                 Resolve-OpenAlert -AlertUid $alert.alertUid
+                $resolvedCount++
+                if ($script:isVerboseDetailed) {
+                    Write-Verbose ("Resolved Alert: {0} | Device {1}" -f
+                        $alert.alertUid, $alert.alertSourceInfo.deviceName)
+                }
+                if ($script:isDevelopment -and $resolvedCount -ge $script:maxSims) {
+                    Write-Host ("[Test Complete] Simulations: {0}" -f $resolvedCount)
+                    return
+                }
             }
-            $resolvedCount = $resolvedCount + $alertCount
+            $nextPageUri = $openAlerts.pageDetails.nextPageUrl
+        }
+        else {
+            if ($script:isVerboseDetailed) {
+                Write-Warning "[No Data] No matching open Alerts..."
+            }
         }
     }
     While($nextPageUri)
 
-    Write-Host "Total Alerts Resolved: "$resolvedCount
+    Write-Verbose (" Total Alerts Resolved: {0}" -f $resolvedCount)
 }
 
-function Start-RMMComponent {
-    Write-Host "`n=============================="
-    Write-Host " Resolve All Open Alerts v1.1"
-    Write-Host "=============================="
-										
+function Invoke-RMMComponent {
+    Write-Host "`n================================"
+    Write-Host $script:version
+    Write-Host "================================"
 
-    Write-Host "Target: "(Get-Culture).TextInfo.ToTitleCase($Env:Target)
-	if ($Env:Target -eq "site") {
-		Write-Host "SiteID: "$Env:SiteID
-	}
-    Write-Host "Priority: "$Env:Priority
-
-    Write-Host "Searching API Token in System Variable..."
-    if(-not (Assert-ApiKey)) {
-        Write-Host "API Token Error, view Stderr for details..."
-        Write-Error -Message (New-APITokenNotFoundError) -ErrorAction Stop
+    Write-Host "[Options]"
+    Write-Host (" Target: {0}" -f (Get-Culture).TextInfo.ToTitleCase($Env:Target))
+    if ($Env:Target -eq "site") {
+        Write-Host (" SiteID: {0}" -f $Env:SiteID)
     }
-    Write-Host "API Token found."
+    Write-Host (" Priority: {0}" -f $Env:Priority)
+    Write-Host (" MonitorType: {0}" -f $Env:MonitorType)
+    Write-Host (" DeviceType: {0}" -f $Env:DeviceType)
+    Write-Host (" UDF: {0}" -f $Env:UdfNumber)
 
-    Write-Host "Verifying RMM Platform..."
-    if((-not (Assert-RMMPlatform)) -or ((Get-RMMPlatform).length -eq 0)) {
-        Write-Host "RMM Platform Error, view Stderr for details..."
-        Write-Error -Message (New-InvalidPlatformError) -ErrorAction Stop
+    if(-not (Test-ApiToken)) {
+        Write-Host "[Auth] Token Error, view Stderr for details..."
+        Write-Error "API Token Not Found!" -ErrorAction Stop
     }
-    Write-Host "RMM Platform: "(Get-RMMPlatform)
+    Write-Host "[Auth] Token found."
 
-    Write-Host ("Reading Open Alerts from {0}..." -f (Get-AlertApiUri))
-    Resolve-AllAlerts -Uri (Get-AlertApiUri)
+    if((-not (Test-RMMPlatform)) -or ((Get-RMMPlatform).length -eq 0)) {
+        Write-Host "[Platform] Not Found, view Stderr for details..."
+        Write-Error "RMM Platform Unknown!" -ErrorAction Stop
+    }
+    Write-Host ("[Platform] RMM - {0}" -f (Get-RMMPlatform))
+
+    Write-Host "[Fetch] Reading Open Alerts"
+    Resolve-AllAlerts -Uri (Get-ApiAlertUri)
 }
 
-Start-RMMComponent
+function Invoke-MockComponent {
+    <#
+.Description
+Mock Run: Only uses already Resolved Alerts for simulation
+This is useful for Integration Testing and Stress Testing
+Set Mock environment variables below
+#>
+    $Env:CS_WS_ADDRESS = "" # merlot-centrastage | concord-centrastage | etc
+    $Env:RMMAPIKey = ""
+    $Env:Target = "account" # site | account
+    $Env:SiteID = "" # set here if Env:Target = "site"
+    $Env:Priority = "All" # All | Information | Low | Moderate | High | Critical
+    $Env:MonitorType = "" # online_offline | eventlog | custom_snmp | etc
+    $Env:DeviceType = "" # Desktop | Laptop | Server | ESXI Host | Printer | etc
+    $Env:UdfNumber = "" # UDF1-30, UDF must be set to "resolvealerts" in RMM
+    $script:maxSims = 1000 # number of alert resolution to simulate
+
+    $oldPrefs = $VerbosePreference
+    $VerbosePreference = "Continue"
+    $script:isDevelopment = $true
+
+    Invoke-RMMComponent
+    $VerbosePreference = $oldPrefs
+}
+
+#Invoke-MockComponent
+Invoke-RMMComponent
