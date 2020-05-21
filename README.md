@@ -65,8 +65,8 @@ For actual Alert Resolution in local development, use [`Invoke-RMMComponent`](ht
 
 Anyone can contribute.
 
-- Open a [new issue](https://github.com/piouson/Resolve-Open-Alerts/issues) for bug report, feature request, typos or a simple question
-- Create a [pull request](https://github.com/piouson/Resolve-Open-Alerts/pulls) to submit your own fixes, unit tests, improvements, or features
+- Open a [new issue](https://github.com/piouson/Resolve-Open-Alerts/issues) to request bug fixes, features or a simple question
+- Create a [pull request](https://github.com/piouson/Resolve-Open-Alerts/pulls) to submit your own fixes, unit tests, features, or for typos and document updates
 - Submit test cases
 
 ## License
