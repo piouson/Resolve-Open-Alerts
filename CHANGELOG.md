@@ -1,6 +1,6 @@
 # Changelog
 
-## [2.0.0] - 20-05-2020
+## [2.0.0] - 21-05-2020
 
 - Added development mode with mock testing
 - Added more alert filtering options
