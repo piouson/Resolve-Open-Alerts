@@ -6,6 +6,8 @@ A Datto RMM Component to resolve Open Alerts via the RMM API.
 
 ![License: GPL-3](https://img.shields.io/github/license/piouson/Resolve-Open-Alerts) ![Powershell: Version 3, 5 and 6](https://img.shields.io/badge/powershell-3.0%20%7C%205.1%20%7C%206.2-blue) ![Platforms: Windows, macOS, Linux](https://img.shields.io/badge/platform-windows%20%7C%20macos%20%7C%20linux-brightgreen) ![Releave: Version 2](https://img.shields.io/github/v/release/piouson/Resolve-Open-Alerts?sort=semver) ![Release Date](https://img.shields.io/github/release-date/piouson/Resolve-Open-Alerts) ![Downloads](https://img.shields.io/github/downloads/piouson/Resolve-Open-Alerts/total)
 
+> ![Resolve Open Alerts sample image](./sample-480.png)
+
 ## Prerequisites
 
 - Valid RMM API token, see [RMM API docs](https://help.aem.autotask.net/en/Content/2SETUP/APIv2.htm)
