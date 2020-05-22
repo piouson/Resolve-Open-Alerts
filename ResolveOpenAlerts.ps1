@@ -7,7 +7,7 @@
     - DeviceCache to skip search for cached devices during Alert filtering
 #>
 
-$script:version = " Resolve All Open Alerts v2.2.0"
+$script:version = " Resolve All Open Alerts v2.4.0"
 $script:apiHits = 0
 $script:rateLimitCount = 0
 $script:rateBuffer = 200
@@ -162,31 +162,34 @@ function Find-AlertsByOptions {
     Param([PSCustomObject]$Alerts)
 
     if ($Env:Priority) {
-        $Alerts.alerts = $Alerts.alerts | Where-Object {$_.priority -eq $Env:Priority}
+        $Alerts = $Alerts | Where-Object {$_.alerts.priority -eq $Env:Priority}
     }
 
     if ($Env:MonitorType -and $Alerts.alerts.alertContext) {
-        $Alerts.alerts = $Alerts.alerts | Where-Object {
-            $_.alertContext."@class" -like "$Env:MonitorType*"
+        $Alerts = $Alerts | Where-Object {
+            $_.alerts.alertContext."@class" -like "$Env:MonitorType*"
         }
     }
 
     if ($Env:DeviceType -and $Alerts.alerts.alertSourceInfo) {
-        $Alerts.alerts = $Alerts.alerts | Where-Object {
-            $deviceUid = $_.alertSourceInfo.deviceUid
+        $Alerts = $Alerts | Where-Object {
+            $deviceUid = $_.alerts.alertSourceInfo.deviceUid
             $device = Get-Device -Uid $deviceUid
             $device.deviceType.category -like "$Env:DeviceType*"
         }
     }
 
     if ($Env:UdfNumber -and $Alerts.alerts.alertSourceInfo) {
-        $Alerts.alerts = $Alerts.alerts | Where-Object {
-            $deviceUid = $_.alertSourceInfo.deviceUid
+        $Alerts = $Alerts | Where-Object {
+            $deviceUid = $_.alerts.alertSourceInfo.deviceUid
             $device = Get-Device -Uid $deviceUid
             $device.udf[$Env:UdfNumber] -eq "resolvealerts"
         }
     }
 
+    if ($Alerts.alerts.count) {
+        $Alerts.pageDetails.count = $Alerts.alerts.count
+    }
     return $Alerts
 }
 
@@ -268,10 +271,18 @@ function Invoke-RMMComponent {
     if ($Env:Target -eq "site") {
         Write-Host (" SiteID: {0}" -f $Env:SiteID)
     }
-    Write-Host (" Priority: {0}" -f $Env:Priority)
-    Write-Host (" MonitorType: {0}" -f $Env:MonitorType)
-    Write-Host (" DeviceType: {0}" -f $Env:DeviceType)
-    Write-Host (" UDF: {0}" -f $Env:UdfNumber)
+    if ($Env:Priority) {
+        Write-Host (" Priority: {0}" -f $Env:Priority)
+    }
+    if ($Env:MonitorType) {
+        Write-Host (" MonitorType: {0}" -f $Env:MonitorType)
+    }
+    if ($Env:DeviceType) {
+        Write-Host (" DeviceType: {0}" -f $Env:DeviceType)
+    }
+    if ($Env:UdfNumber) {
+        Write-Host (" UDF: {0}" -f $Env:UdfNumber)
+    }
 
     if(-not (Test-ApiToken)) {
         Write-Host "[Auth] Token Error, view Stderr for details..."
