@@ -103,34 +103,38 @@ Ref: https://github.com/piouson/Resolve-Open-Alerts</description>
       <value>memory</value>
     </selectionKeyValue>
     <selectionKeyValue idx='9'>
+      <name>Online / Offline</name>
+      <value>memory</value>
+    </selectionKeyValue>
+    <selectionKeyValue idx='10'>
       <name>Patch</name>
       <value>patch</value>
     </selectionKeyValue>
-    <selectionKeyValue idx='10'>
+    <selectionKeyValue idx='11'>
       <name>Ping</name>
       <value>ping</value>
     </selectionKeyValue>
-    <selectionKeyValue idx='11'>
+    <selectionKeyValue idx='12'>
       <name>Process</name>
       <value>process</value>
     </selectionKeyValue>
-    <selectionKeyValue idx='12'>
+    <selectionKeyValue idx='13'>
       <name>Security</name>
       <value>sec_management</value>
     </selectionKeyValue>
-    <selectionKeyValue idx='13'>
+    <selectionKeyValue idx='14'>
       <name>Service</name>
       <value>srvc</value>
     </selectionKeyValue>
-    <selectionKeyValue idx='14'>
+    <selectionKeyValue idx='15'>
       <name>SNMP</name>
       <value>custom_snmp</value>
     </selectionKeyValue>
-    <selectionKeyValue idx='15'>
+    <selectionKeyValue idx='16'>
       <name>Software</name>
       <value>software</value>
     </selectionKeyValue>
-    <selectionKeyValue idx='16'>
+    <selectionKeyValue idx='17'>
       <name>WMI</name>
       <value>wmi</value>
     </selectionKeyValue>
@@ -178,7 +182,7 @@ Ref: https://github.com/piouson/Resolve-Open-Alerts</description>
     <name>UdfNumber</name>
     <type>string</type>
     <direction>false</direction>
-    <description>Set a UDF Number to "resolvealerts". This option will only Resolve Alerts if the value of the Device UDF Number specified matches "resolvealerts".</description>
+    <description>Set a UDF Number to "resolvealerts" and specify number here..</description>
     <defaultVal />
   </variable>
 </component>
