@@ -235,7 +235,7 @@ function Resolve-AllAlerts {
         $alertCount = $openAlerts.alerts.count
 
         if ($alertCount -gt 0) {
-            Write-Host ("[Next Page] Processing {0} Alert(s)..." -f $alertCount)
+            Write-Host ("[New Page] Processing {0} Alert(s)..." -f $alertCount)
             ForEach ($alert in $openAlerts.alerts) {
                 Resolve-OpenAlert -AlertUid $alert.alertUid
                 $resolvedCount++
