@@ -1,5 +1,5 @@
 <#
-    Resolve Open Alerts v2.0.0
+    Resolve Open Alerts v2
     - Use Invoke-RMMComponent for production
     - Use Invoke-MockComponent for development, controls $script:isDevelopment
     - Development only simulates and Never resolves Alerts
@@ -7,7 +7,7 @@
     - DeviceCache to skip search for cached devices during Alert filtering
 #>
 
-$script:version = " Resolve All Open Alerts v1.4.2"
+$script:version = " Resolve All Open Alerts v2.1.0"
 $script:apiHits = 0
 $script:rateLimitCount = 0
 $script:rateBuffer = 200
@@ -223,7 +223,7 @@ function Resolve-AllAlerts {
 
         $openAlerts = Get-OpenAlerts -Uri $Uri
         if (-not $openAlerts.alerts) {
-            Write-Host "[FAIL] Error reading Alerts, see Stderr..."
+            Write-Host "[NULL] No data found!"
             Write-Host (" Total Alerts Resolved: {0}" -f $resolvedCount)
             Write-Error "Open Alerts Not Found!" -ErrorAction Stop
         }
