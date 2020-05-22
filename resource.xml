@@ -1,0 +1,184 @@
+<component info='CentraStage Component'>
+  <general>
+    <name>Resolve Open Alerts</name>
+    <category>scripts</category>
+    <description>This complements existing Alert Resolution options, offering more flexibility and control, especially for 100s and 1000s of Open Alerts.
+Ref: https://github.com/piouson/Resolve-Open-Alerts</description>
+    <uid>cacc9c8e-3e30-4e13-825f-a6070fb73311</uid>
+    <hash />
+    <version>3</version>
+    <timeout>3600</timeout>
+    <securityLevel>5</securityLevel>
+    <installType>powershell</installType>
+  </general>
+  <variable idx='0'>
+    <name>Target</name>
+    <selectionKeyValue idx='0'>
+      <name>Account</name>
+      <value>account</value>
+    </selectionKeyValue>
+    <selectionKeyValue idx='1'>
+      <name>Site</name>
+      <value>site</value>
+    </selectionKeyValue>
+    <type>map</type>
+    <direction>false</direction>
+    <description>Select "Account" for all Sites or select "Site" and specify SiteID</description>
+    <defaultVal>Account</defaultVal>
+  </variable>
+  <variable idx='1'>
+    <name>SiteID</name>
+    <type>string</type>
+    <direction>false</direction>
+    <description>Confirm Site ID in [Site &gt; select-site &gt; Settings]</description>
+    <defaultVal>[enter site id if target is site]</defaultVal>
+  </variable>
+  <variable idx='2'>
+    <name>Priority</name>
+    <selectionKeyValue idx='0'>
+      <name></name>
+      <value></value>
+    </selectionKeyValue>
+    <selectionKeyValue idx='1'>
+      <name>Information</name>
+      <value>Information</value>
+    </selectionKeyValue>
+    <selectionKeyValue idx='2'>
+      <name>Low</name>
+      <value>Low</value>
+    </selectionKeyValue>
+    <selectionKeyValue idx='3'>
+      <name>Moderate</name>
+      <value>Moderate</value>
+    </selectionKeyValue>
+    <selectionKeyValue idx='4'>
+      <name>High</name>
+      <value>High</value>
+    </selectionKeyValue>
+    <selectionKeyValue idx='5'>
+      <name>Critical</name>
+      <value>Critical</value>
+    </selectionKeyValue>
+    <type>map</type>
+    <direction>false</direction>
+    <description>Alert Priority</description>
+    <defaultVal></defaultVal>
+  </variable>
+  <variable idx='3'>
+    <name>MonitorType</name>
+    <selectionKeyValue idx='0'>
+      <name></name>
+      <value></value>
+    </selectionKeyValue>
+    <selectionKeyValue idx='1'>
+      <name>Antivirus</name>
+      <value>antivirus</value>
+    </selectionKeyValue>
+    <selectionKeyValue idx='2'>
+      <name>Component</name>
+      <value>comp_script</value>
+    </selectionKeyValue>
+    <selectionKeyValue idx='3'>
+      <name>CPU</name>
+      <value>cpu</value>
+    </selectionKeyValue>
+    <selectionKeyValue idx='4'>
+      <name>Datto (BCDR)</name>
+      <value>datto</value>
+    </selectionKeyValue>
+    <selectionKeyValue idx='5'>
+      <name>Disk Usage</name>
+      <value>perf_disk</value>
+    </selectionKeyValue>
+    <selectionKeyValue idx='6'>
+      <name>Event Log</name>
+      <value>eventlog</value>
+    </selectionKeyValue>
+    <selectionKeyValue idx='7'>
+      <name>File / Folder</name>
+      <value>file</value>
+    </selectionKeyValue>
+    <selectionKeyValue idx='8'>
+      <name>Memory</name>
+      <value>memory</value>
+    </selectionKeyValue>
+    <selectionKeyValue idx='9'>
+      <name>Patch</name>
+      <value>patch</value>
+    </selectionKeyValue>
+    <selectionKeyValue idx='10'>
+      <name>Ping</name>
+      <value>ping</value>
+    </selectionKeyValue>
+    <selectionKeyValue idx='11'>
+      <name>Process</name>
+      <value>process</value>
+    </selectionKeyValue>
+    <selectionKeyValue idx='12'>
+      <name>Security</name>
+      <value>sec_management</value>
+    </selectionKeyValue>
+    <selectionKeyValue idx='13'>
+      <name>Service</name>
+      <value>srvc</value>
+    </selectionKeyValue>
+    <selectionKeyValue idx='14'>
+      <name>SNMP</name>
+      <value>custom_snmp</value>
+    </selectionKeyValue>
+    <selectionKeyValue idx='15'>
+      <name>Software</name>
+      <value>software</value>
+    </selectionKeyValue>
+    <selectionKeyValue idx='16'>
+      <name>WMI</name>
+      <value>wmi</value>
+    </selectionKeyValue>
+    <type>map</type>
+    <direction>false</direction>
+    <description>Type of Monitor</description>
+    <defaultVal></defaultVal>
+  </variable>
+  <variable idx='4'>
+    <name>DeviceType</name>
+    <selectionKeyValue idx='0'>
+      <name></name>
+      <value></value>
+    </selectionKeyValue>
+    <selectionKeyValue idx='1'>
+      <name>Desktop</name>
+      <value>Desktop</value>
+    </selectionKeyValue>
+    <selectionKeyValue idx='2'>
+      <name>Laptop</name>
+      <value>Laptop</value>
+    </selectionKeyValue>
+    <selectionKeyValue idx='3'>
+      <name>Server</name>
+      <value>Server</value>
+    </selectionKeyValue>
+    <selectionKeyValue idx='4'>
+      <name>ESXi Host</name>
+      <value>ESXi Host</value>
+    </selectionKeyValue>
+    <selectionKeyValue idx='5'>
+      <name>Printer</name>
+      <value>Printer</value>
+    </selectionKeyValue>
+    <selectionKeyValue idx='6'>
+      <name>Network Device</name>
+      <value>Network Device</value>
+    </selectionKeyValue>
+    <type>map</type>
+    <direction>false</direction>
+    <description>Type of Device</description>
+    <defaultVal></defaultVal>
+  </variable>
+  <variable idx='5'>
+    <name>UdfNumber</name>
+    <type>string</type>
+    <direction>false</direction>
+    <description>Set a UDF Number to "resolvealerts". This option will only Resolve Alerts if the value of the Device UDF Number specified matches "resolvealerts".</description>
+    <defaultVal />
+  </variable>
+</component>

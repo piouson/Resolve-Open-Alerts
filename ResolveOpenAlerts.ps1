@@ -7,7 +7,7 @@
     - DeviceCache to skip search for cached devices during Alert filtering
 #>
 
-$script:version = " Resolve All Open Alerts v2.1.0"
+$script:version = " Resolve All Open Alerts v2.2.0"
 $script:apiHits = 0
 $script:rateLimitCount = 0
 $script:rateBuffer = 200
@@ -161,7 +161,7 @@ function Get-Device {
 function Find-AlertsByOptions {
     Param([PSCustomObject]$Alerts)
 
-    if ($Env:Priority -ne 'All') {
+    if ($Env:Priority) {
         $Alerts.alerts = $Alerts.alerts | Where-Object {$_.priority -eq $Env:Priority}
     }
 
