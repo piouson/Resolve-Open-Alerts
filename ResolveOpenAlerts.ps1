@@ -7,7 +7,7 @@
     - DeviceCache to skip search for cached devices during Alert filtering
 #>
 
-$script:version = " Resolve All Open Alerts v2.4.0"
+$script:version = " Resolve All Open Alerts v2.5.2"
 $script:apiHits = 0
 $script:rateLimitCount = 0
 $script:rateBuffer = 200
@@ -252,7 +252,13 @@ function Resolve-AllAlerts {
         }
         else {
             if ($script:isVerboseDetailed) {
-                Write-Warning "[No Data] No matching open Alerts..."
+                Write-Warning (
+                    "[No Data] No matching Alerts for: {0}{1}{2}{3}..." -f
+                        $Env:Priority,
+                        ($Env:MonitorType ? (" | {0}" -f $Env:MonitorType) : "")
+                        ($Env:DeviceType ? (" | {0}" -f $Env:DeviceType) : "")
+                        ($Env:UdfNumber ? (" | {0}" -f $Env:UdfNumber) : "") 
+                )
             }
         }
     }
