@@ -7,7 +7,7 @@
     - DeviceCache to skip search for cached devices during Alert filtering
 #>
 
-$script:version = " Resolve All Open Alerts v2.3.0"
+$script:version = " Resolve All Open Alerts v2.4.0"
 $script:apiHits = 0
 $script:rateLimitCount = 0
 $script:rateBuffer = 200
@@ -271,10 +271,18 @@ function Invoke-RMMComponent {
     if ($Env:Target -eq "site") {
         Write-Host (" SiteID: {0}" -f $Env:SiteID)
     }
-    Write-Host (" Priority: {0}" -f $Env:Priority)
-    Write-Host (" MonitorType: {0}" -f $Env:MonitorType)
-    Write-Host (" DeviceType: {0}" -f $Env:DeviceType)
-    Write-Host (" UDF: {0}" -f $Env:UdfNumber)
+    if ($Env:Priority) {
+        Write-Host (" Priority: {0}" -f $Env:Priority)
+    }
+    if ($Env:MonitorType) {
+        Write-Host (" MonitorType: {0}" -f $Env:MonitorType)
+    }
+    if ($Env:DeviceType) {
+        Write-Host (" DeviceType: {0}" -f $Env:DeviceType)
+    }
+    if ($Env:UdfNumber) {
+        Write-Host (" UDF: {0}" -f $Env:UdfNumber)
+    }
 
     if(-not (Test-ApiToken)) {
         Write-Host "[Auth] Token Error, view Stderr for details..."
