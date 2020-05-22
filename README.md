@@ -11,7 +11,7 @@ A Datto RMM Component to resolve Open Alerts via the RMM API.
 
 ## Prerequisites
 
-- Valid RMM API token, see [RMM API docs](https://help.aem.autotask.net/en/Content/2SETUP/APIv2.htm)
+- Valid RMM API token, saved on target device as `$Env:RMMAPIKey`, see [RMM API docs](https://help.aem.autotask.net/en/Content/2SETUP/APIv2.htm)
 - Preconfigured [Environment Variables](#environment-variables)
 
 ## Getting Started
@@ -28,10 +28,24 @@ The quickest way to try out this component is by running in Powershell.
 
 ## Environment Variables
 
-These variables are defined within RMM in production/live mode. But needs to be defined locally in development mode. See [variables in Powershell](https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_environment_variables) and [variables in RMM](https://help.aem.autotask.net/en/Content/2SETUP/AccountSettings/AccountSettings.htm#Variables).
+If running in production (e.g. from RMM), you only need to configure `$Env:RMMAPIKey` at [**System** level](https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_environment_variables?view=powershell-7#saving-changes-to-environment-variables) to hold the RMM API token before [deployment](#deployment).
 
-- `$Env:CS_WS_ADDRESS` {`merlot-centrastage.net` | `concord-centrastage.net` | etc}
-- `$Env:RMMAPIKey`, see [prerequisites](#prerequisites)
+> This is not suitable as [RMM Site Variable](https://help.aem.autotask.net/en/Content/4WEBPORTAL/Sites/SiteSettings.htm#Variables) due to its character length limitation.
+
+```powershell
+# run as administrator
+[Environment]::SetEnvironmentVariable('RMMAPIKey', 'enter-api-token-here', 'Machine')
+```
+
+> Requires process refresh to verify changes or just open a new Powershell terminal
+
+```powershell
+[Environment]::GetEnvironmentVariable('RMMAPIKey', 'Machine')
+```
+
+Other variables required at deployment time, must be set manually in [`Invoke-MockComponent`](https://github.com/piouson/Resolve-Open-Alerts/blob/71b99a72c550e37e3bc72e8a6fd06ce743bd4083/ResolveAllOpenAlerts.ps1#L292) for local development and mock testing.
+
+- `$Env:CS_WS_ADDRESS` - preconfigured in RMM {`merlot-centrastage.net` | `concord-centrastage.net` | etc}
 - `$Env:Target` {`site` | `account`}, default is site of device running component
 - `$Env:SiteID`, set here if `$Env:Target` = `"site"`
 - `$Env:Priority` {`All` | `Information` | `Low` | `Moderate` | `High` | `Critical`}
@@ -40,6 +54,8 @@ These variables are defined within RMM in production/live mode. But needs to be 
 - `$Env:UdfNumber` {`1-30`}, UDF must be set to `"resolvealerts"` in RMM, see image below
 
 > ![Sample UDF value](./udf-example.png)
+
+See [variables in Powershell](https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_environment_variables) and [variables in RMM](https://help.aem.autotask.net/en/Content/2SETUP/AccountSettings/AccountSettings.htm#Variables).
 
 ## Running Tests
 
