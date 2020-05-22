@@ -255,9 +255,9 @@ function Resolve-AllAlerts {
                 Write-Warning (
                     "[No Data] No matching Alerts for: {0}{1}{2}{3}..." -f
                         $Env:Priority,
-                        ($Env:MonitorType ? (" | {0}" -f $Env:MonitorType) : "")
-                        ($Env:DeviceType ? (" | {0}" -f $Env:DeviceType) : "")
-                        ($Env:UdfNumber ? (" | {0}" -f $Env:UdfNumber) : "") 
+                        (if ($Env:MonitorType) {(" | {0}" -f $Env:MonitorType)} else {""}),
+                        (if ($Env:DeviceType) {(" | {0}" -f $Env:DeviceType)} else {""}),
+                        (if ($Env:UdfNumber) {(" | {0}" -f $Env:UdfNumber)} else {""})
                 )
             }
         }
