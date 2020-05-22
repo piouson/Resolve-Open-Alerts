@@ -7,7 +7,7 @@
     - DeviceCache to skip search for cached devices during Alert filtering
 #>
 
-$script:version = " Resolve All Open Alerts v2.5.2"
+$script:version = " Resolve All Open Alerts v2.6.2"
 $script:apiHits = 0
 $script:rateLimitCount = 0
 $script:rateBuffer = 200
@@ -316,9 +316,9 @@ Set Mock environment variables below
 #>
   $Env:CS_WS_ADDRESS = "" # merlot-centrastage | concord-centrastage | etc
   $Env:RMMAPIKey = ""
-  $Env:Target = "account" # site | account
+  $Env:Target = "" # site | account
   $Env:SiteID = "" # set here if Env:Target = "site"
-  $Env:Priority = "All" # All | Information | Low | Moderate | High | Critical
+  $Env:Priority = "" # Information | Low | Moderate | High | Critical
   $Env:MonitorType = "" # online_offline | eventlog | custom_snmp | etc
   $Env:DeviceType = "" # Desktop | Laptop | Server | ESXI Host | Printer | etc
   $Env:UdfNumber = "" # UDF1-30, UDF must be set to "resolvealerts" in RMM
