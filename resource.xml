@@ -80,10 +80,10 @@ Ref: https://github.com/piouson/Resolve-Open-Alerts</description>
     </selectionKeyValue>
     <selectionKeyValue idx='3'>
       <name>CPU</name>
-      <value>cpu</value>
+      <value>perf_resource</value>
     </selectionKeyValue>
     <selectionKeyValue idx='4'>
-      <name>Datto (BCDR)</name>
+      <name>Datto</name>
       <value>datto</value>
     </selectionKeyValue>
     <selectionKeyValue idx='5'>
@@ -96,45 +96,49 @@ Ref: https://github.com/piouson/Resolve-Open-Alerts</description>
     </selectionKeyValue>
     <selectionKeyValue idx='7'>
       <name>File / Folder</name>
-      <value>file</value>
+      <value>fs</value>
     </selectionKeyValue>
     <selectionKeyValue idx='8'>
       <name>Memory</name>
-      <value>memory</value>
+      <value>perf_resource</value>
     </selectionKeyValue>
     <selectionKeyValue idx='9'>
       <name>Online / Offline</name>
-      <value>memory</value>
+      <value>online_offline</value>
     </selectionKeyValue>
     <selectionKeyValue idx='10'>
       <name>Patch</name>
       <value>patch</value>
     </selectionKeyValue>
     <selectionKeyValue idx='11'>
+      <name>Performance Counters</name>
+      <value>perf_mon</value>
+    </selectionKeyValue>
+    <selectionKeyValue idx='12'>
       <name>Ping</name>
       <value>ping</value>
     </selectionKeyValue>
-    <selectionKeyValue idx='12'>
+    <selectionKeyValue idx='13'>
       <name>Process</name>
       <value>process</value>
     </selectionKeyValue>
-    <selectionKeyValue idx='13'>
+    <selectionKeyValue idx='14'>
       <name>Security</name>
       <value>sec_management</value>
     </selectionKeyValue>
-    <selectionKeyValue idx='14'>
+    <selectionKeyValue idx='15'>
       <name>Service</name>
       <value>srvc</value>
     </selectionKeyValue>
-    <selectionKeyValue idx='15'>
+    <selectionKeyValue idx='16'>
       <name>SNMP</name>
       <value>custom_snmp</value>
     </selectionKeyValue>
-    <selectionKeyValue idx='16'>
+    <selectionKeyValue idx='17'>
       <name>Software</name>
       <value>software</value>
     </selectionKeyValue>
-    <selectionKeyValue idx='17'>
+    <selectionKeyValue idx='18'>
       <name>WMI</name>
       <value>wmi</value>
     </selectionKeyValue>
