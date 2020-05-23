@@ -7,7 +7,7 @@
     - DeviceCache to skip search for cached devices during Alert filtering
 #>
 
-$script:version = " Resolve All Open Alerts v2.7.0"
+$script:version = " Resolve All Open Alerts v2.3.1"
 $script:apiHits = 0
 $script:rateLimitCount = 0
 $script:rateBuffer = 200
