@@ -3,11 +3,14 @@
     - Use Invoke-RMMComponent for production
     - Use Invoke-MockComponent for development, controls $script:isDevelopment
     - Development only simulates and Never resolves Alerts
-    - isVerboseDetailed $true shows each Alert resolved
-    - DeviceCache to skip search for cached devices during Alert filtering
+    - You may use Invoke-RMMComponent in development to test actual Alert resoultion
+    - isVerboseDetailed $true displays each Alert resolved in output
+    - deviceCache is used to speedup device type filtering by skipping cached entries
+    - For updates and documentation, see https://github.com/piouson/Resolve-Open-Alerts
+    Author: piouson.github.io
 #>
 
-$script:version = " Resolve All Open Alerts v2.7.0"
+$script:version = " Resolve Open Alerts v2.3.4"
 $script:apiHits = 0
 $script:rateLimitCount = 0
 $script:rateBuffer = 200
@@ -163,34 +166,39 @@ function Find-AlertsByOptions {
   Param([PSCustomObject]$Alerts)
 
   if ($Env:Priority) {
-    $Alerts = $Alerts | Where-Object { $_.alerts.priority -eq $Env:Priority }
+    $Alerts.alerts = @(
+      $Alerts.alerts | Where-Object {
+        $_.priority -eq $Env:Priority
+      }
+    )
   }
 
-  if ($Env:MonitorType -and $Alerts.alerts.alertContext) {
-    $Alerts = $Alerts | Where-Object {
-      $_.alerts.alertContext."@class" -like "$Env:MonitorType*"
-    }
+  if ($Env:MonitorType -and $Alerts.alerts) {
+    $Alerts.alerts = @(
+      $Alerts.alerts | Where-Object {
+        $_.alertContext."@class" -like "$Env:MonitorType*"
+      }
+    )
   }
 
   if ($Env:DeviceType -and $Alerts.alerts.alertSourceInfo) {
-    $Alerts = $Alerts | Where-Object {
-      $deviceUid = $_.alerts.alertSourceInfo.deviceUid
-      $device = Get-Device -Uid $deviceUid
-      $device.deviceType.category -like "$Env:DeviceType*"
-    }
+    $Alerts.alerts = @(
+      $Alerts.alerts | Where-Object {(
+        Get-Device $_.alertSourceInfo.deviceUid
+      ).deviceType.category -like "$Env:DeviceType*"}
+    )
   }
 
   if ($Env:UdfNumber -and $Alerts.alerts.alertSourceInfo) {
-    $Alerts = $Alerts | Where-Object {
-      $deviceUid = $_.alerts.alertSourceInfo.deviceUid
-      $device = Get-Device -Uid $deviceUid
-      $device.udf[$Env:UdfNumber] -eq "resolvealerts"
-    }
+    $udf = ("udf{0}" -f $Env:UdfNumber)
+    $Alerts.alerts = @(
+      $Alerts.alerts | Where-Object {(
+        Get-Device $_.alertSourceInfo.deviceUid
+      ).udf.$udf -eq "resolvealerts"}
+    )
   }
 
-  if ($Alerts.alerts.count) {
-    $Alerts.pageDetails.count = $Alerts.alerts.count
-  }
+  $Alerts.pageDetails.count = $Alerts.alerts.count
   return $Alerts
 }
 
@@ -207,6 +215,24 @@ function Resolve-OpenAlert {
   $alertUri = "{0}{1}" -f (Get-ApiUri), $resolvePath
 
   Invoke-RMMApi -Uri $alertUri -Method $method | Out-Null
+}
+
+function Get-FilterOptionsAsString {
+  $message = ("[Filter Options]`n Target: {0}" -f
+    (Get-Culture).TextInfo.ToTitleCase($Env:Target))
+  if ($Env:Priority) {
+    $message += ("`n Priority: {0}" -f $Env:Priority)
+  }
+  if ($Env:MonitorType) {
+    $message += ("`n MonitorType: {0}" -f $Env:MonitorType)
+  }
+  if ($Env:DeviceType) {
+    $message += ("`n DeviceType: {0}" -f $Env:DeviceType)
+  }
+  if ($Env:UdfNumber) {
+    $message += ("`n UDF: {0}" -f $Env:UdfNumber)
+  }
+  return $message
 }
 
 function Resolve-AllAlerts {
@@ -227,16 +253,17 @@ function Resolve-AllAlerts {
 
     $openAlerts = Get-OpenAlerts -Uri $Uri
     if (-not $openAlerts.alerts) {
-      Write-Host "[NULL] No data found!"
-      Write-Host (" Total Alerts Resolved: {0}" -f $resolvedCount)
-      Write-Error "Open Alerts Not Found!" -ErrorAction Stop
+      Write-Output "[Null] No Open Alerts for Account!"
+      Write-Output ("[Stats] Total Alerts Resolved: {0}" -f $resolvedCount)
+      return
     }
 
     $openAlerts = Find-AlertsByOptions -Alerts $openAlerts
-    $alertCount = $openAlerts.alerts.count
-
-    if ($alertCount -gt 0) {
-      Write-Host ("[New Page] Processing {0} Alert(s)..." -f $alertCount)
+    if (-not $openAlerts.alerts) {
+      Write-Output "[Null] No Open Alerts matching filter options!"
+    }
+    else {
+      Write-Output ("[New Page] Processing {0} Alert(s)..." -f $openAlerts.alerts.count)
       ForEach ($alert in $openAlerts.alerts) {
         Resolve-OpenAlert -AlertUid $alert.alertUid
         $resolvedCount++
@@ -245,72 +272,45 @@ function Resolve-AllAlerts {
             $alert.alertUid, $alert.alertSourceInfo.deviceName)
         }
         if ($script:isDevelopment -and $resolvedCount -ge $script:maxSims) {
-          Write-Host ("[Test Complete] Simulations: {0}" -f $resolvedCount)
+          Write-Output ("[Test Complete] Simulations: {0}" -f $resolvedCount)
           return
         }
       }
-      $nextPageUri = $openAlerts.pageDetails.nextPageUrl
     }
-    else {
-      if ($script:isVerboseDetailed) {
-        Write-Warning (
-          "[No Data] No matching Alerts for: {0}{1}{2}{3}..." -f
-          $Env:Priority,
-          (if ($Env:MonitorType) { (" | {0}" -f $Env:MonitorType) } else { "" }),
-          (if ($Env:DeviceType) { (" | {0}" -f $Env:DeviceType) } else { "" }),
-          (if ($Env:UdfNumber) { (" | {0}" -f $Env:UdfNumber) } else { "" })
-        )
-      }
-    }
+    $nextPageUri = $openAlerts.pageDetails.nextPageUrl
   }
   While ($nextPageUri)
 
-  Write-Verbose (" Total Alerts Resolved: {0}" -f $resolvedCount)
+  Write-Output ("[Stats] Total Alerts Resolved: {0}" -f $resolvedCount)
 }
 
 function Invoke-RMMComponent {
-  Write-Host "`n================================"
-  Write-Host $script:version
-  Write-Host "================================"
+  Write-Output "`n================================"
+  Write-Output $script:version
+  Write-Output "================================"
 
-  Write-Host "[Options]"
-  Write-Host (" Target: {0}" -f (Get-Culture).TextInfo.ToTitleCase($Env:Target))
-  if ($Env:Target -eq "site") {
-    Write-Host (" SiteID: {0}" -f $Env:SiteID)
-  }
-  if ($Env:Priority) {
-    Write-Host (" Priority: {0}" -f $Env:Priority)
-  }
-  if ($Env:MonitorType) {
-    Write-Host (" MonitorType: {0}" -f $Env:MonitorType)
-  }
-  if ($Env:DeviceType) {
-    Write-Host (" DeviceType: {0}" -f $Env:DeviceType)
-  }
-  if ($Env:UdfNumber) {
-    Write-Host (" UDF: {0}" -f $Env:UdfNumber)
-  }
+  Write-Output (Get-FilterOptionsAsString)
 
   if (-not (Test-ApiToken)) {
-    Write-Host "[Auth] Token Error, view Stderr for details..."
+    Write-Output "[Auth] Token Error, view Stderr for details..."
     Write-Error "API Token Not Found!" -ErrorAction Stop
   }
-  Write-Host "[Auth] Token found."
+  Write-Output "[Auth] Token found."
 
   if ((-not (Test-RMMPlatform)) -or ((Get-RMMPlatform).length -eq 0)) {
-    Write-Host "[Platform] Not Found, view Stderr for details..."
+    Write-Output "[Platform] Not Found, view Stderr for details..."
     Write-Error "RMM Platform Unknown!" -ErrorAction Stop
   }
-  Write-Host ("[Platform] RMM - {0}" -f (Get-RMMPlatform))
+  Write-Output ("[Platform] RMM - {0}" -f (Get-RMMPlatform))
 
-  Write-Host "[Fetch] Reading Open Alerts"
+  Write-Output "[Fetch] Reading Open Alerts"
   Resolve-AllAlerts -Uri (Get-ApiAlertUri)
 }
 
 function Invoke-MockComponent {
   <#
 .Description
-Mock Run: Only uses already Resolved Alerts for simulation
+Mock Run: Uses already Resolved Alerts for simulation
 This is useful for Integration Testing and Stress Testing
 Set Mock environment variables below
 #>
