@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.3.4] - 23-05-2020
+
+- Added Performance Counter Monitor to filter options
+- Fixed issue with options filtering that causes random alert resolutions
+- Fixed RMM component selection variable
+
 ## [2.0.0] - 21-05-2020
 
 - Added development mode with mock testing
