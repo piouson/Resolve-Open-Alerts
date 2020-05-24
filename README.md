@@ -14,17 +14,12 @@ A Datto RMM Component to resolve Open Alerts via the RMM API.
 - Valid RMM API token, saved on target device as `$Env:RMMAPIKey`, see [RMM API docs](https://help.aem.autotask.net/en/Content/2SETUP/APIv2.htm)
 - Preconfigured [Environment Variables](#environment-variables)
 
-## Getting Started
+## Deployment
 
-The quickest way to try out this component is by running in Powershell.
-
-- Unzip `ResolveOpenAlerts.zip`
-- Open `ResolveOpenAlerts.ps1` in [Visual Studio Code](https://code.visualstudio.com/), [Powershell ISE](https://docs.microsoft.com/en-us/powershell/scripting/components/ise/introducing-the-windows-powershell-ise) or your favourite IDE.
-- Define [environment variables](#environment-variables) in [`Invoke-MockComponent`](https://github.com/piouson/Resolve-Open-Alerts/blob/71b99a72c550e37e3bc72e8a6fd06ce743bd4083/ResolveAllOpenAlerts.ps1#L292)
-- Switch to development mode, see [Running Tests](#running-tests)
-- Run script
-
-> The default RMM script timeout of 1 hour should resolve max 30,000 Alerts.
+- [Download `resolve-open-alerts-v2`](https://github.com/piouson/Resolve-Open-Alerts/releases)
+- [Import Component in RMM](https://help.aem.autotask.net/en/Content/4WEBPORTAL/Components/ManageComponents.htm#Import_a_component), select `resolve-open-alerts-v2.cpt` and save
+- Set `$Env:RMMAPIKey` **System** variable on target device, see [environment variables](#environment-variables)
+- Use a [Quick Job](https://help.aem.autotask.net/en/Content/4WEBPORTAL/Jobs/Quick_Jobs.htm) or [Job Scheduler](https://help.aem.autotask.net/en/Content/4WEBPORTAL/Jobs/Job_Scheduler.htm) and select the target device
 
 ## Environment Variables
 
@@ -57,6 +52,19 @@ Other variables required at deployment time, must be set manually in [`Invoke-Mo
 
 See [variables in Powershell](https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_environment_variables) and [variables in RMM](https://help.aem.autotask.net/en/Content/2SETUP/AccountSettings/AccountSettings.htm#Variables).
 
+## Running Directly in Powershell
+
+The quickest way to try out this component is by running in Powershell.
+
+- [Clone or Download source code](https://github.com/piouson/Resolve-Open-Alerts)
+- Unzip to a suitable path
+- Open `ResolveOpenAlerts.ps1` in [Visual Studio Code](https://code.visualstudio.com/), [Powershell ISE](https://docs.microsoft.com/en-us/powershell/scripting/components/ise/introducing-the-windows-powershell-ise) or your favourite Powershell IDE.
+- Define [environment variables](#environment-variables) in [`Invoke-MockComponent`](https://github.com/piouson/Resolve-Open-Alerts/blob/71b99a72c550e37e3bc72e8a6fd06ce743bd4083/ResolveAllOpenAlerts.ps1#L292) for testing or just above `Invoke-RMMComponent` for production/live
+- For testing, switch to development mode, see [Running Tests](#running-tests)
+- Run script
+
+> The default RMM script timeout of 1 hour should resolve max 30,000 Alerts.
+
 ## Running Tests
 
 > Requires [environment variables](#environment-variables).
@@ -64,6 +72,13 @@ See [variables in Powershell](https://docs.microsoft.com/en-us/powershell/module
 Unit Tests have not been written for any functions yet, but [`Invoke-MockComponent`](https://github.com/piouson/Resolve-Open-Alerts/blob/71b99a72c550e37e3bc72e8a6fd06ce743bd4083/ResolveAllOpenAlerts.ps1#L292) can be used for local development, Integration Testing and/or Stress Testing. Just uncomment invocation at bottom of file, see snippet below.
 
 ```powershell
+# production/live mode
+#Invoke-MockComponent
+Invoke-RMMComponent
+```
+
+```powershell
+# development mode
 Invoke-MockComponent
 #Invoke-RMMComponent
 ```
@@ -71,11 +86,6 @@ Invoke-MockComponent
 > When using [`Invoke-MockComponent`](https://github.com/piouson/Resolve-Open-Alerts/blob/71b99a72c550e37e3bc72e8a6fd06ce743bd4083/ResolveAllOpenAlerts.ps1#L292), Alerts are **never resolved**. Alert Resolution is simulated by using already Resolved Alerts as mock data.
 
 For actual Alert Resolution in local development, use [`Invoke-RMMComponent`](https://github.com/piouson/Resolve-Open-Alerts/blob/71b99a72c550e37e3bc72e8a6fd06ce743bd4083/ResolveAllOpenAlerts.ps1#L261) directly with [environment variables](#environment-variables).
-
-## Deployment
-
-- [Import Component](https://help.aem.autotask.net/en/Content/4WEBPORTAL/Components/ManageComponents.htm#Import_a_component) and select `ResolveOpenAlert.cpt`
-- Use a [Quick Job](https://help.aem.autotask.net/en/Content/4WEBPORTAL/Jobs/Quick_Jobs.htm) or [Job Scheduler](https://help.aem.autotask.net/en/Content/4WEBPORTAL/Jobs/Job_Scheduler.htm), and specify a single device as target
 
 ## Contributing
 
