@@ -1,4 +1,4 @@
-# Resolve-Open-Alerts
+# Resolve Open Alerts
 
 A Datto RMM Component to resolve Open Alerts via the RMM API.
 
@@ -88,5 +88,3 @@ Anyone can contribute.
 ## License
 
 [![License: GPL-3](https://img.shields.io/github/license/piouson/Resolve-Open-Alerts)](https://github.com/piouson/Resolve-Open-Alerts/blob/master/LICENSE)
-
-- **[MIT license](https://github.com/piouson/Resolve-Open-Alerts/blob/master/LICENSE)**
