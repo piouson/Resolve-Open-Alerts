@@ -16,27 +16,51 @@ A Datto RMM Component to resolve Open Alerts via the RMM API.
 
 ## Deployment
 
-- [Download `resolve-open-alerts-v2`](https://github.com/piouson/Resolve-Open-Alerts/releases)
-- [Import Component in RMM](https://help.aem.autotask.net/en/Content/4WEBPORTAL/Components/ManageComponents.htm#Import_a_component), select `resolve-open-alerts-v2.cpt` and save
-- Set `$Env:RMMAPIKey` **System** variable on target device, see [environment variables](#environment-variables)
-- Use a [Quick Job](https://help.aem.autotask.net/en/Content/4WEBPORTAL/Jobs/Quick_Jobs.htm) or [Job Scheduler](https://help.aem.autotask.net/en/Content/4WEBPORTAL/Jobs/Job_Scheduler.htm) and select the target device
+### Import component in RMM
 
-## Environment Variables
+- Download [`resolve-open-alerts-v2.cpt`](https://github.com/piouson/Resolve-Open-Alerts/releases)
+- [Import component in RMM](https://help.aem.autotask.net/en/Content/4WEBPORTAL/Components/ManageComponents.htm#Import_a_component), select `resolve-open-alerts-v2.cpt` and save
 
-If running in production (e.g. from RMM), you only need to configure `$Env:RMMAPIKey` at [**System** level](https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_environment_variables?view=powershell-7#saving-changes-to-environment-variables) to hold the RMM API token before [deployment](#deployment).
+### Save RMM API token on target device
 
-> This is not suitable as [RMM Site Variable](https://help.aem.autotask.net/en/Content/4WEBPORTAL/Sites/SiteSettings.htm#Variables) due to its character length limitation.
+- In RMM, [Activate the API](https://help.aem.autotask.net/en/Content/2SETUP/APIv2.htm#Activate_the_API)
+- Save the `API Key`, `API Secret Key` and `API URL` in a text file
+- Download [RMM API example files](https://help.aem.autotask.net/en/Content/2SETUP/APIv2.htm#Downloadable_example_code) and extract `powershell_token.ps1`
+- Open `Powershell ISE` as **`Administrator`** and open script `powershell_token.ps1`
+- Scroll to the bottom of `powershell_token.ps1`, add code below and run script
 
 ```powershell
-# run as administrator
-[Environment]::SetEnvironmentVariable('RMMAPIKey', 'enter-api-token-here', 'Machine')
+# Define parameters
+$params = @{
+  apiUrl        = '[API URL]'
+  apiKey        = '[API Key]'
+  apiSecretKey  = '[API Secret Key]'
+}
+
+# Call New-AemApiAccessToken function using defined parameters 
+$key = New-AemApiAccessToken @params
+
+# Save API Token as System Variable
+[Environment]::SetEnvironmentVariable('RMMAPIKey',$key,'Machine')
 ```
 
-> Requires process refresh to verify changes or just open a new Powershell terminal
+> Requires process refresh for changes, close and reopen `Powershell ISE`, then run below command to confirm token saved as **System** variable
 
 ```powershell
 [Environment]::GetEnvironmentVariable('RMMAPIKey', 'Machine')
 ```
+
+> If token is not displayed, try saving again by rerunning `Powershell ISE` as **Administrator**
+>
+> **RMM API token** is not suitable as [RMM Site Variable](https://help.aem.autotask.net/en/Content/4WEBPORTAL/Sites/SiteSettings.htm#Variables) due to its character length exceeding limit.
+
+### Run component on target device
+
+- Use a [Quick Job](https://help.aem.autotask.net/en/Content/4WEBPORTAL/Jobs/Quick_Jobs.htm) or [Job Scheduler](https://help.aem.autotask.net/en/Content/4WEBPORTAL/Jobs/Job_Scheduler.htm) and select the target device
+
+## Environment Variables
+
+If running in production (e.g. from RMM), you only need to configure `$Env:RMMAPIKey` at **System** level, see [Deployment](#deployment).
 
 Other variables required at deployment time, must be set manually in [`Invoke-MockComponent`](https://github.com/piouson/Resolve-Open-Alerts/blob/71b99a72c550e37e3bc72e8a6fd06ce743bd4083/ResolveAllOpenAlerts.ps1#L292) for local development and mock testing.
 
@@ -58,7 +82,7 @@ The quickest way to try out this component is by running in Powershell.
 
 - [Clone or Download source code](https://github.com/piouson/Resolve-Open-Alerts)
 - Unzip to a suitable path
-- Open `ResolveOpenAlerts.ps1` in [Visual Studio Code](https://code.visualstudio.com/), [Powershell ISE](https://docs.microsoft.com/en-us/powershell/scripting/components/ise/introducing-the-windows-powershell-ise) or your favourite Powershell IDE.
+- Open `ResolveOpenAlerts.ps1` in [Visual Studio Code](https://code.visualstudio.com/), Powershell ISE or your favourite Powershell IDE.
 - Define [environment variables](#environment-variables) in [`Invoke-MockComponent`](https://github.com/piouson/Resolve-Open-Alerts/blob/71b99a72c550e37e3bc72e8a6fd06ce743bd4083/ResolveAllOpenAlerts.ps1#L292) for testing or just above `Invoke-RMMComponent` for production/live
 - For testing, switch to development mode, see [Running Tests](#running-tests)
 - Run script
@@ -71,14 +95,16 @@ The quickest way to try out this component is by running in Powershell.
 
 Unit Tests have not been written for any functions yet, but [`Invoke-MockComponent`](https://github.com/piouson/Resolve-Open-Alerts/blob/71b99a72c550e37e3bc72e8a6fd06ce743bd4083/ResolveAllOpenAlerts.ps1#L292) can be used for local development, Integration Testing and/or Stress Testing. Just uncomment invocation at bottom of file, see snippet below.
 
+> ### Production/Live mode
+
 ```powershell
-# production/live mode
 #Invoke-MockComponent
 Invoke-RMMComponent
 ```
 
+> ### Development mode
+
 ```powershell
-# development mode
 Invoke-MockComponent
 #Invoke-RMMComponent
 ```
