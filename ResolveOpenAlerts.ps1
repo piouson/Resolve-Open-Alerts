@@ -10,7 +10,7 @@
     Author: piouson.github.io
 #>
 
-$script:version = " Resolve Open Alerts v2.3.8"
+$script:version = " Resolve Open Alerts v2.3.9"
 $script:apiHits = 0
 $script:rateLimitCount = 0
 $script:rateBuffer = 200
