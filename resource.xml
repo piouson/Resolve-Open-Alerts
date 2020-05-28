@@ -36,7 +36,7 @@ Ref: https://github.com/piouson/Resolve-Open-Alerts</description>
   <variable idx='2'>
     <name>Priority</name>
     <selectionKeyValue idx='0'>
-      <name></name>
+      <name>All</name>
       <value></value>
     </selectionKeyValue>
     <selectionKeyValue idx='1'>
@@ -62,12 +62,12 @@ Ref: https://github.com/piouson/Resolve-Open-Alerts</description>
     <type>map</type>
     <direction>false</direction>
     <description>Alert Priority</description>
-    <defaultVal></defaultVal>
+    <defaultVal>All</defaultVal>
   </variable>
   <variable idx='3'>
     <name>MonitorType</name>
     <selectionKeyValue idx='0'>
-      <name></name>
+      <name>All</name>
       <value></value>
     </selectionKeyValue>
     <selectionKeyValue idx='1'>
@@ -145,12 +145,12 @@ Ref: https://github.com/piouson/Resolve-Open-Alerts</description>
     <type>map</type>
     <direction>false</direction>
     <description>Type of Monitor</description>
-    <defaultVal></defaultVal>
+    <defaultVal>All</defaultVal>
   </variable>
   <variable idx='4'>
     <name>DeviceType</name>
     <selectionKeyValue idx='0'>
-      <name></name>
+      <name>All</name>
       <value></value>
     </selectionKeyValue>
     <selectionKeyValue idx='1'>
@@ -180,7 +180,7 @@ Ref: https://github.com/piouson/Resolve-Open-Alerts</description>
     <type>map</type>
     <direction>false</direction>
     <description>Type of Device</description>
-    <defaultVal></defaultVal>
+    <defaultVal>All</defaultVal>
   </variable>
   <variable idx='5'>
     <name>UdfNumber</name>
