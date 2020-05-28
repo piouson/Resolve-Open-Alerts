@@ -29,6 +29,8 @@ A Datto RMM Component to resolve Open Alerts via the RMM API.
 - Open `Powershell ISE` as **`Administrator`** and open script `powershell_token.ps1`
 - Scroll to the bottom of `powershell_token.ps1`, add code below and run script
 
+> For options outside Powershell, use `curl_token.bat` or `csharp_token.cs`
+
 ```powershell
 # Define parameters
 $params = @{
